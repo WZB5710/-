@@ -72,8 +72,16 @@
                 color: #64748b;
                 margin-top: 2px;
             }
+            .calendar-amount {
+                font-size: 0.65rem;
+                color: #10b981;
+                margin-top: 1px;
+            }
             .calendar-hours-today {
                 color: rgba(255, 255, 255, 0.8);
+            }
+            .calendar-amount-today {
+                color: rgba(255, 255, 255, 0.9);
             }
             .edit-mode-input {
                 @apply border border-gray-300 rounded px-2 py-1 w-full;
@@ -94,6 +102,7 @@
                 <button id="nav-calendar" class="nav-btn text-neutral hover:text-primary font-medium py-1">日历视图</button>
                 <button id="nav-models" class="nav-btn text-neutral hover:text-primary font-medium py-1">型号管理</button>
                 <button id="nav-stats" class="nav-btn text-neutral hover:text-primary font-medium py-1">统计分析</button>
+                <button id="nav-settings" class="nav-btn text-neutral hover:text-primary font-medium py-1">设置</button>
             </nav>
             <button id="mobile-menu-btn" class="md:hidden text-gray-700">
                 <i class="fa fa-bars text-xl"></i>
@@ -106,6 +115,7 @@
                 <button id="mobile-nav-calendar" class="mobile-nav-btn text-left text-neutral py-2">日历视图</button>
                 <button id="mobile-nav-models" class="mobile-nav-btn text-left text-neutral py-2">型号管理</button>
                 <button id="mobile-nav-stats" class="mobile-nav-btn text-left text-neutral py-2">统计分析</button>
+                <button id="mobile-nav-settings" class="mobile-nav-btn text-left text-neutral py-2">设置</button>
             </div>
         </div>
     </header>
@@ -170,6 +180,10 @@
                             <span id="total-daily-hours" class="text-xl font-bold text-primary">0</span>
                             <span class="text-gray-600">分钟</span>
                         </div>
+                        <div>
+                            <span class="text-gray-600">总计金额：</span>
+                            <span id="total-daily-amount" class="text-xl font-bold text-secondary">¥0.00</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -187,7 +201,13 @@
                     <button id="prev-month" class="p-2 rounded-full hover:bg-gray-100 transition-custom">
                         <i class="fa fa-chevron-left text-gray-700"></i>
                     </button>
-                    <h3 id="current-month" class="text-xl font-semibold"></h3>
+                    <div class="flex flex-col items-center">
+                        <h3 id="current-month" class="text-xl font-semibold"></h3>
+                        <div class="flex space-x-4 mt-1">
+                            <span id="month-total-hours" class="text-sm text-primary font-medium"></span>
+                            <span id="month-total-amount" class="text-sm text-secondary font-medium"></span>
+                        </div>
+                    </div>
                     <button id="next-month" class="p-2 rounded-full hover:bg-gray-100 transition-custom">
                         <i class="fa fa-chevron-right text-gray-700"></i>
                     </button>
@@ -227,8 +247,14 @@
                         
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
-                                <span class="text-gray-600">总工时</span>
-                                <span id="day-total-hours" class="text-xl font-bold text-primary">0 分钟</span>
+                                <div>
+                                    <span class="text-gray-600">总工时</span>
+                                    <span id="day-total-hours" class="text-xl font-bold text-primary ml-1">0 分钟</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">总金额</span>
+                                    <span id="day-total-amount" class="text-xl font-bold text-secondary ml-1">¥0.00</span>
+                                </div>
                             </div>
                             
                             <h4 class="font-medium text-gray-700 mb-3">工作详情</h4>
@@ -319,12 +345,27 @@
 
         <!-- 统计分析面板 -->
         <section id="stats-panel" class="panel hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- 月份选择 -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-dark flex items-center">
+                    <i class="fa fa-bar-chart text-primary mr-3"></i>统计分析
+                </h2>
+                <div class="flex items-center space-x-4">
+                    <div>
+                        <label for="stats-month-select" class="block text-sm font-medium text-gray-700 mb-1">选择月份</label>
+                        <select id="stats-month-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom">
+                            <!-- 月份选项将通过JavaScript动态添加 -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
                 <!-- 总工时卡片 -->
                 <div class="bg-white rounded-lg shadow-lg p-6 card-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-500 text-sm">总工时</p>
+                            <p class="text-gray-500 text-sm">当月工时</p>
                             <h3 id="total-hours" class="text-3xl font-bold mt-1">0 分钟</h3>
                         </div>
                         <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -337,39 +378,38 @@
                     </div>
                 </div>
                 
-                <!-- 总记录数卡片 -->
+                <!-- 总记录的天数卡片 -->
                 <div class="bg-white rounded-lg shadow-lg p-6 card-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-500 text-sm">总记录数</p>
-                            <h3 id="total-records" class="text-3xl font-bold mt-1">0</h3>
+                            <p class="text-gray-500 text-sm">总记录的天数</p>
+                            <h3 id="recorded-days" class="text-3xl font-bold mt-1">0</h3>
                         </div>
                         <div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
-                            <i class="fa fa-file-text-o text-secondary text-xl"></i>
+                            <i class="fa fa-calendar-check-o text-secondary text-xl"></i>
                         </div>
                     </div>
                     <div class="mt-4 text-sm text-gray-500">
-                        <span>包含</span>
-                        <span id="total-models" class="ml-1 font-medium">0</span>
-                        <span>种型号</span>
+                        <span>平均每日工时</span>
+                        <span id="avg-daily-hours" class="ml-1 font-medium">0</span>
+                        <span>分钟</span>
                     </div>
                 </div>
                 
-                <!-- 总台数卡片 -->
+                <!-- 总收入卡片 -->
                 <div class="bg-white rounded-lg shadow-lg p-6 card-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-gray-500 text-sm">总台数</p>
-                            <h3 id="total-units" class="text-3xl font-bold mt-1">0</h3>
+                            <p class="text-gray-500 text-sm">总收入</p>
+                            <h3 id="total-income" class="text-3xl font-bold mt-1 text-secondary">¥0.00</h3>
                         </div>
-                        <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
-                            <i class="fa fa-cubes text-accent text-xl"></i>
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="fa fa-money text-green-600 text-xl"></i>
                         </div>
                     </div>
                     <div class="mt-4 text-sm text-gray-500">
-                        <span>平均每台</span>
-                        <span id="avg-hours-per-unit" class="ml-1 font-medium">0</span>
-                        <span>分钟</span>
+                        <span>本月收入</span>
+                        <span id="current-month-income" class="ml-1 font-medium text-secondary">¥0.00</span>
                     </div>
                 </div>
             </div>
@@ -388,6 +428,49 @@
                     <h3 class="text-lg font-semibold mb-4 text-gray-700">各型号工时占比</h3>
                     <div class="h-80">
                         <canvas id="model-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 设置面板 -->
+        <section id="settings-panel" class="panel hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-6 text-dark flex items-center">
+                    <i class="fa fa-cog text-primary mr-3"></i>系统设置
+                </h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700">工时单价设置</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="hourly-rate" class="block text-sm font-medium text-gray-700 mb-2">工时单价（元/小时）</label>
+                                <input type="number" id="hourly-rate" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="例如：50.00" required>
+                                <p class="text-xs text-gray-500 mt-1">设置每小时的工时单价，系统将据此计算收入金额</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button id="save-settings" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center">
+                                <i class="fa fa-save mr-2"></i>保存设置
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-700">数据管理</h3>
+                        <div class="space-y-4">
+                            <button id="export-data" class="bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center">
+                                <i class="fa fa-download mr-2"></i>导出数据
+                            </button>
+                            <button id="import-data" class="bg-accent hover:bg-accent/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center">
+                                <i class="fa fa-upload mr-2"></i>导入数据
+                            </button>
+                            <input type="file" id="import-file" accept=".json" class="hidden">
+                            <button id="clear-data" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center">
+                                <i class="fa fa-trash mr-2"></i>清空所有数据
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -562,6 +645,19 @@
                 return { success: false, message: '没有可删除的记录' };
             },
             
+            // 获取工时单价设置
+            getHourlyRate() {
+                const rate = localStorage.getItem('workHourRate');
+                return rate ? parseFloat(rate) : 0;
+            },
+            
+            // 保存工时单价设置
+            saveHourlyRate(rate) {
+                localStorage.setItem('workHourRate', rate.toString());
+                this.updateEventListeners();
+                return { success: true, message: '工时单价设置已保存' };
+            },
+            
             // 获取按日期统计的数据
             getDailyStats() {
                 const allRecords = this.getDailyRecords();
@@ -572,14 +668,40 @@
                         return sum + (entry.count * entry.hoursPerUnit);
                     }, 0);
                     
+                    // 计算金额（转换为小时后乘以单价）
+                    const hourlyRate = this.getHourlyRate();
+                    const amount = (totalHours / 60) * hourlyRate;
+                    
                     stats.push({
                         date,
-                        hours: totalHours
+                        hours: totalHours,
+                        amount: parseFloat(amount.toFixed(2))
                     });
                 });
                 
                 // 按日期排序
                 return stats.sort((a, b) => new Date(a.date) - new Date(b.date));
+            },
+            
+            // 获取指定月份的总金额
+            getMonthTotalAmount(year, month) {
+                const dailyStats = this.getDailyStats();
+                let totalAmount = 0;
+                
+                dailyStats.forEach(stat => {
+                    const date = new Date(stat.date);
+                    if (date.getFullYear() === year && date.getMonth() === month) {
+                        totalAmount += stat.amount;
+                    }
+                });
+                
+                return parseFloat(totalAmount.toFixed(2));
+            },
+            
+            // 获取当前月份的总金额
+            getCurrentMonthTotalAmount() {
+                const now = new Date();
+                return this.getMonthTotalAmount(now.getFullYear(), now.getMonth());
             },
             
             // 获取按型号统计的数据
@@ -626,21 +748,29 @@
             getTotalStats() {
                 const allRecords = this.getDailyRecords();
                 const models = this.getModels();
+                const hourlyRate = this.getHourlyRate();
+                
+                // 计算有记录的天数
+                const recordedDays = Object.keys(allRecords).length;
                 
                 let totalRecords = 0;
-                let totalUnits = 0;
                 let totalHours = 0;
                 
                 Object.values(allRecords).forEach(entries => {
                     totalRecords += entries.length;
                     entries.forEach(entry => {
-                        totalUnits += entry.count;
                         totalHours += entry.count * entry.hoursPerUnit;
                     });
                 });
                 
+                // 计算总收入
+                const totalIncome = (totalHours / 60) * hourlyRate;
+                
+                // 计算当前月份收入
+                const currentMonthIncome = this.getCurrentMonthTotalAmount();
+                
                 const totalModels = models.length;
-                const avgHoursPerUnit = totalUnits > 0 ? (totalHours / totalUnits).toFixed(1) : 0;
+                const avgDailyHours = recordedDays > 0 ? (totalHours / recordedDays).toFixed(1) : 0;
                 
                 // 获取最近15天的数据用于计算变化
                 const dailyStats = this.getDailyStats();
@@ -658,12 +788,68 @@
                 
                 return {
                     totalRecords,
-                    totalUnits,
                     totalHours,
                     totalModels,
-                    avgHoursPerUnit,
-                    changePercentage
+                    changePercentage,
+                    recordedDays,
+                    avgDailyHours,
+                    totalIncome: parseFloat(totalIncome.toFixed(2)),
+                    currentMonthIncome
                 };
+            },
+            
+            // 导出所有数据
+            exportAllData() {
+                const data = {
+                    models: this.getModels(),
+                    records: this.getDailyRecords(),
+                    hourlyRate: this.getHourlyRate()
+                };
+                
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `work-hour-data-${new Date().toISOString().slice(0,10)}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                return { success: true, message: '数据导出成功' };
+            },
+            
+            // 导入数据
+            importData(jsonData) {
+                try {
+                    const data = JSON.parse(jsonData);
+                    
+                    if (data.models && Array.isArray(data.models)) {
+                        this.saveModels(data.models);
+                    }
+                    
+                    if (data.records && typeof data.records === 'object') {
+                        this.saveDailyRecords(data.records);
+                    }
+                    
+                    if (typeof data.hourlyRate === 'number') {
+                        this.saveHourlyRate(data.hourlyRate);
+                    }
+                    
+                    return { success: true, message: '数据导入成功' };
+                } catch (error) {
+                    console.error('导入数据失败:', error);
+                    return { success: false, message: '数据导入失败，请检查文件格式' };
+                }
+            },
+            
+            // 清空所有数据
+            clearAllData() {
+                localStorage.removeItem('workHourModels');
+                localStorage.removeItem('workHourDailyRecords');
+                localStorage.removeItem('workHourRate');
+                this.updateEventListeners();
+                return { success: true, message: '所有数据已清空' };
             },
             
             // 事件监听器列表
@@ -677,6 +863,23 @@
             // 触发数据更新事件
             updateEventListeners() {
                 this.eventListeners.forEach(callback => callback());
+            },
+            
+            // 获取所有工作记录条目
+            getAllWorkEntries() {
+                const allRecords = this.getDailyRecords();
+                const entries = [];
+                
+                Object.keys(allRecords).forEach(date => {
+                    allRecords[date].forEach(entry => {
+                        entries.push({
+                            date,
+                            ...entry
+                        });
+                    });
+                });
+                
+                return entries;
             }
         };
 
@@ -696,6 +899,10 @@
                 document.getElementById('work-date').value = today;
                 document.getElementById('current-date-display').textContent = this.formatDate(today);
                 
+                // 加载工时单价设置
+                const hourlyRate = DataManager.getHourlyRate();
+                document.getElementById('hourly-rate').value = hourlyRate;
+                
                 this.setupEventListeners();
                 this.renderAll();
                 
@@ -714,6 +921,7 @@
                 document.getElementById('nav-calendar').addEventListener('click', () => this.showPanel('calendar-panel', 'nav-calendar'));
                 document.getElementById('nav-models').addEventListener('click', () => this.showPanel('models-panel', 'nav-models'));
                 document.getElementById('nav-stats').addEventListener('click', () => this.showPanel('stats-panel', 'nav-stats'));
+                document.getElementById('nav-settings').addEventListener('click', () => this.showPanel('settings-panel', 'nav-settings'));
                 
                 // 移动端导航按钮事件
                 document.getElementById('mobile-menu-btn').addEventListener('click', () => {
@@ -738,6 +946,11 @@
                 
                 document.getElementById('mobile-nav-stats').addEventListener('click', () => {
                     this.showPanel('stats-panel', 'mobile-nav-stats');
+                    document.getElementById('mobile-menu').classList.add('hidden');
+                });
+                
+                document.getElementById('mobile-nav-settings').addEventListener('click', () => {
+                    this.showPanel('settings-panel', 'mobile-nav-settings');
                     document.getElementById('mobile-menu').classList.add('hidden');
                 });
                 
@@ -884,6 +1097,62 @@
                         document.getElementById('edit-unit-numbers').focus();
                     }
                 });
+                
+                // 设置面板事件
+                document.getElementById('save-settings').addEventListener('click', () => this.saveSettings());
+                document.getElementById('export-data').addEventListener('click', () => this.exportData());
+                document.getElementById('import-data').addEventListener('click', () => this.importData());
+                document.getElementById('import-file').addEventListener('change', (e) => this.handleImportFile(e));
+                document.getElementById('clear-data').addEventListener('click', () => this.clearData());
+            },
+            
+            // 保存设置
+            saveSettings() {
+                const hourlyRate = parseFloat(document.getElementById('hourly-rate').value);
+                
+                if (isNaN(hourlyRate) || hourlyRate < 0) {
+                    this.showNotification(false, '请输入有效的工时单价');
+                    return;
+                }
+                
+                const result = DataManager.saveHourlyRate(hourlyRate);
+                this.showNotification(result.success, result.message);
+            },
+            
+            // 导出数据
+            exportData() {
+                const result = DataManager.exportAllData();
+                this.showNotification(result.success, result.message);
+            },
+            
+            // 导入数据
+            importData() {
+                document.getElementById('import-file').click();
+            },
+            
+            // 处理导入文件
+            handleImportFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const result = DataManager.importData(e.target.result);
+                    this.showNotification(result.success, result.message);
+                    // 重置文件输入，允许重复选择同一个文件
+                    document.getElementById('import-file').value = '';
+                };
+                reader.readAsText(file);
+            },
+            
+            // 清空数据
+            clearData() {
+                if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                    const result = DataManager.clearAllData();
+                    this.showNotification(result.success, result.message);
+                    // 重置工时单价输入框
+                    document.getElementById('hourly-rate').value = 0;
+                }
             },
             
             // 进入编辑模式
@@ -950,6 +1219,7 @@
             renderDayEntriesInEditMode() {
                 const entries = DataManager.getRecordsByDate(this.currentDayDetailDate) || [];
                 const entriesContainer = document.getElementById('day-entries-container');
+                const hourlyRate = DataManager.getHourlyRate();
                 
                 entriesContainer.innerHTML = '';
                 
@@ -974,6 +1244,10 @@
                         return unit.number;
                     }).join('/');
                     
+                    // 计算金额
+                    const totalHours = entry.count * entry.hoursPerUnit;
+                    const amount = (totalHours / 60) * hourlyRate;
+                    
                     entryElement.innerHTML = `
                         <div class="flex justify-between items-start mb-3">
                             <div class="font-medium">型号</div>
@@ -993,7 +1267,8 @@
                         </div>
                         <div class="flex flex-wrap justify-between text-sm text-gray-600">
                             <div>数量: <span class="edit-count" data-index="${index}">${entry.count.toFixed(2)}</span> 台</div>
-                            <div>工时: <span class="edit-total-hours" data-index="${index}">${(entry.count * entry.hoursPerUnit).toFixed(1)}</span> 分钟</div>
+                            <div>工时: <span class="edit-total-hours" data-index="${index}">${totalHours.toFixed(1)}</span> 分钟</div>
+                            <div>金额: <span class="edit-total-amount text-secondary" data-index="${index}">¥${amount.toFixed(2)}</span></div>
                         </div>
                     `;
                     entriesContainer.appendChild(entryElement);
@@ -1023,12 +1298,13 @@
                     });
                 });
                 
-                // 添加删除条目事件
-                document.querySelectorAll('.delete-entry-in-edit').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const index = parseInt(e.currentTarget.dataset.index);
+                // 添加删除条目事件（使用事件委托）
+                document.getElementById('day-entries-container').addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-entry-in-edit')) {
+                        const btn = e.target.closest('.delete-entry-in-edit');
+                        const index = parseInt(btn.dataset.index);
                         this.deleteEntryInEditMode(index);
-                    });
+                    }
                 });
             },
             
@@ -1036,6 +1312,7 @@
             updateEntryCalculations(index) {
                 const entriesContainer = document.getElementById('day-entries-container');
                 const entryElement = entriesContainer.children[index];
+                const hourlyRate = DataManager.getHourlyRate();
                 
                 if (!entryElement) return;
                 
@@ -1043,6 +1320,7 @@
                 const unitInput = entryElement.querySelector('.edit-unit-numbers');
                 const countElement = entryElement.querySelector('.edit-count');
                 const totalHoursElement = entryElement.querySelector('.edit-total-hours');
+                const totalAmountElement = entryElement.querySelector('.edit-total-amount');
                 
                 const modelId = modelSelect.value;
                 const unitNumbers = unitInput.value;
@@ -1052,6 +1330,7 @@
                 if (!model || !unitNumbers.trim()) {
                     countElement.textContent = '0.00';
                     totalHoursElement.textContent = '0.0';
+                    totalAmountElement.textContent = '¥0.00';
                     return;
                 }
                 
@@ -1059,44 +1338,54 @@
                 const units = this.parseUnitNumbers(unitNumbers);
                 const totalQuantity = units.reduce((sum, unit) => sum + unit.quantity, 0);
                 const totalHours = totalQuantity * model.hours;
+                const totalAmount = (totalHours / 60) * hourlyRate;
                 
                 // 更新显示
                 countElement.textContent = totalQuantity.toFixed(2);
                 totalHoursElement.textContent = totalHours.toFixed(1);
+                totalAmountElement.textContent = `¥${totalAmount.toFixed(2)}`;
                 
-                // 更新总工时
+                // 更新总工时和总金额
                 this.updateDayTotalHoursInEditMode();
             },
             
-            // 在编辑模式下更新日总工时
+            // 在编辑模式下更新日总工时和总金额
             updateDayTotalHoursInEditMode() {
                 const entriesContainer = document.getElementById('day-entries-container');
                 let totalHours = 0;
+                let totalAmount = 0;
                 
-                // 计算所有条目的总工时
+                // 计算所有条目的总工时和总金额
                 for (let i = 0; i < entriesContainer.children.length; i++) {
                     const entryElement = entriesContainer.children[i];
                     const hoursElement = entryElement.querySelector('.edit-total-hours');
+                    const amountElement = entryElement.querySelector('.edit-total-amount');
                     
-                    if (hoursElement) {
+                    if (hoursElement && amountElement) {
                         totalHours += parseFloat(hoursElement.textContent) || 0;
+                        totalAmount += parseFloat(amountElement.textContent.replace('¥', '')) || 0;
                     }
                 }
                 
                 // 更新显示
                 document.getElementById('day-total-hours').textContent = `${totalHours.toFixed(1)} 分钟`;
+                document.getElementById('day-total-amount').textContent = `¥${totalAmount.toFixed(2)}`;
             },
             
             // 在编辑模式下删除条目
             deleteEntryInEditMode(index) {
                 const entriesContainer = document.getElementById('day-entries-container');
-                entriesContainer.removeChild(entriesContainer.children[index]);
-                
-                // 重新计算索引并更新事件
-                this.renderDayEntriesInEditMode();
-                
-                // 更新总工时
-                this.updateDayTotalHoursInEditMode();
+                if (entriesContainer.children[index]) {
+                    entriesContainer.removeChild(entriesContainer.children[index]);
+                    
+                    // 重新计算索引并更新事件
+                    this.renderDayEntriesInEditMode();
+                    
+                    // 更新总工时和总金额
+                    this.updateDayTotalHoursInEditMode();
+                } else {
+                    console.error('删除失败：找不到索引为', index, '的条目');
+                }
             },
             
             // 在编辑模式下添加新条目
@@ -1152,7 +1441,7 @@
                 // 重新渲染编辑模式下的条目
                 this.renderDayEntriesInEditMode();
                 
-                // 更新总工时
+                // 更新总工时和总金额
                 this.updateDayTotalHoursInEditMode();
                 
                 this.showNotification(true, '已添加新记录');
@@ -1403,6 +1692,7 @@
                 this.currentEntries = DataManager.getRecordsByDate(date) || [];
                 this.renderDailyEntries();
                 this.updateTotalHours();
+                this.updateTotalAmount();
             },
             
             // 解析产品编号，优化带括号的数量识别
@@ -1515,12 +1805,14 @@
                 this.currentEntries = this.currentEntries.filter(entry => entry.id !== id);
                 this.renderDailyEntries();
                 this.updateTotalHours();
+                this.updateTotalAmount();
                 this.showNotification(true, '记录已删除');
             },
             
             // 渲染每日条目列表
             renderDailyEntries() {
                 const container = document.getElementById('daily-entries-container');
+                const hourlyRate = DataManager.getHourlyRate();
                 
                 if (this.currentEntries.length === 0) {
                     container.innerHTML = `
@@ -1556,6 +1848,10 @@
                         return unit.number;
                     }).join('/');
                     
+                    // 计算金额
+                    const totalHours = entry.count * entry.hoursPerUnit;
+                    const amount = (totalHours / 60) * hourlyRate;
+                    
                     entryElement.innerHTML = `
                         <div class="mb-3 md:mb-0">
                             <div class="font-medium model-name">${entry.modelName}</div>
@@ -1568,7 +1864,10 @@
                                 <span class="font-medium">${entry.count.toFixed(2)}</span> 台
                             </div>
                             <div class="text-gray-600">
-                                工时: <span class="font-medium">${(entry.count * entry.hoursPerUnit).toFixed(1)}</span> 分钟
+                                工时: <span class="font-medium">${totalHours.toFixed(1)}</span> 分钟
+                            </div>
+                            <div class="text-secondary">
+                                金额: <span class="font-medium">¥${amount.toFixed(2)}</span>
                             </div>
                             <button class="copy-entry-btn clipboard-btn text-secondary hover:text-secondary/80 transition-custom" 
                                     data-model="${entry.modelName}" 
@@ -1610,6 +1909,17 @@
                 document.getElementById('total-daily-hours').textContent = totalHours.toFixed(1);
             },
             
+            // 更新总金额
+            updateTotalAmount() {
+                const hourlyRate = DataManager.getHourlyRate();
+                const totalHours = this.currentEntries.reduce((sum, entry) => {
+                    return sum + (entry.count * entry.hoursPerUnit);
+                }, 0);
+                
+                const totalAmount = (totalHours / 60) * hourlyRate;
+                document.getElementById('total-daily-amount').textContent = `¥${totalAmount.toFixed(2)}`;
+            },
+            
             // 更新保存按钮状态
             updateSaveButtonState() {
                 const saveButton = document.getElementById('save-daily-entries');
@@ -1648,10 +1958,28 @@
                 const datesWithData = dailyStats.reduce((obj, item) => {
                     const date = new Date(item.date);
                     if (date.getFullYear() === year && date.getMonth() === month) {
-                        obj[date.getDate()] = item.hours;
+                        obj[date.getDate()] = {
+                            hours: item.hours,
+                            amount: item.amount
+                        };
                     }
                     return obj;
                 }, {});
+                
+                // 计算当月总工时和总金额
+                let monthTotalHours = 0;
+                dailyStats.forEach(stat => {
+                    const date = new Date(stat.date);
+                    if (date.getFullYear() === year && date.getMonth() === month) {
+                        monthTotalHours += stat.hours;
+                    }
+                });
+                
+                const monthTotalAmount = DataManager.getMonthTotalAmount(year, month);
+                
+                // 更新当月总工时和总金额显示
+                document.getElementById('month-total-hours').textContent = `总工时: ${monthTotalHours.toFixed(1)} 分钟`;
+                document.getElementById('month-total-amount').textContent = `总收入: ¥${monthTotalAmount.toFixed(2)}`;
                 
                 // 生成日历网格
                 const calendarGrid = document.getElementById('calendar-grid');
@@ -1680,26 +2008,33 @@
                     
                     dateCell.className = cellClasses;
                     
-                    // 显示日期和工时
+                    // 显示日期、工时和金额
                     let cellContent = `<span>${day}</span>`;
                     if (hasData) {
-                        // 为今天和其他日期设置不同的工时文本样式
+                        // 为今天和其他日期设置不同的工时和金额文本样式
                         const hoursClass = isToday ? 'calendar-hours calendar-hours-today' : 'calendar-hours';
-                        cellContent += `<span class="${hoursClass}">${datesWithData[day].toFixed(1)}'</span>`;
+                        const amountClass = isToday ? 'calendar-amount calendar-amount-today' : 'calendar-amount';
+                        
+                        cellContent += `
+                            <span class="${hoursClass}">${datesWithData[day].hours.toFixed(1)}'</span>
+                            <span class="${amountClass}">¥${datesWithData[day].amount.toFixed(1)}</span>
+                        `;
                     }
                     
                     dateCell.innerHTML = cellContent;
                     
                     // 添加日期点击事件
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    dateCell.addEventListener('click', () => this.showDayDetails(dateStr, datesWithData[day] || 0));
+                    const hours = datesWithData[day]?.hours || 0;
+                    const amount = datesWithData[day]?.amount || 0;
+                    dateCell.addEventListener('click', () => this.showDayDetails(dateStr, hours, amount));
                     
                     calendarGrid.appendChild(dateCell);
                 }
             },
             
             // 显示日期详情
-            showDayDetails(date, totalHours) {
+            showDayDetails(date, totalHours, totalAmount) {
                 // 存储当前详情的日期
                 this.currentDayDetailDate = date;
                 
@@ -1708,8 +2043,10 @@
                 
                 document.getElementById('day-detail-title').textContent = formattedDate;
                 document.getElementById('day-total-hours').textContent = `${totalHours.toFixed(1)} 分钟`;
+                document.getElementById('day-total-amount').textContent = `¥${totalAmount.toFixed(2)}`;
                 
                 const entriesContainer = document.getElementById('day-entries-container');
+                const hourlyRate = DataManager.getHourlyRate();
                 
                 if (entries.length === 0) {
                     entriesContainer.innerHTML = `
@@ -1743,6 +2080,10 @@
                             return unit.number;
                         }).join(', ');
                         
+                        // 计算金额
+                        const totalHours = entry.count * entry.hoursPerUnit;
+                        const amount = (totalHours / 60) * hourlyRate;
+                        
                         entryElement.innerHTML = `
                             <div class="font-medium mb-2 model-name">${entry.modelName}</div>
                             <div class="text-sm text-gray-600 mb-2 units-text">
@@ -1751,7 +2092,8 @@
                             <div class="flex flex-wrap justify-between text-sm">
                                 <div>数量: ${entry.count.toFixed(2)} 台</div>
                                 <div>单台工时: ${entry.hoursPerUnit} 分钟</div>
-                                <div class="font-medium">总工时: ${(entry.count * entry.hoursPerUnit).toFixed(1)} 分钟</div>
+                                <div>总工时: ${totalHours.toFixed(1)} 分钟</div>
+                                <div class="text-secondary font-medium">金额: ¥${amount.toFixed(2)}</div>
                             </div>
                             <div class="mt-3">
                                 <button class="copy-entry-btn text-secondary hover:text-secondary/80 text-sm transition-custom"
@@ -1922,11 +2264,58 @@
                 this.renderModelEntries();
                 this.renderDailyEntries();
                 this.updateTotalHours();
+                this.updateTotalAmount();
                 this.updateSaveButtonState();
+                this.renderStatsMonthSelect();
                 this.renderStats();
                 if (this.currentCalendarDate) {
                     this.renderCalendar();
                 }
+            },
+            
+            // 渲染统计月份选择下拉框
+            renderStatsMonthSelect() {
+                const monthSelect = document.getElementById('stats-month-select');
+                if (!monthSelect) return;
+                
+                // 清空现有选项
+                monthSelect.innerHTML = '';
+                
+                // 获取所有工作记录的日期
+                const entries = DataManager.getAllWorkEntries();
+                const months = new Set();
+                
+                // 添加当前月份
+                const now = new Date();
+                months.add(`${now.getFullYear()}-${now.getMonth()}`);
+                
+                // 添加所有记录的月份
+                entries.forEach(entry => {
+                    const date = new Date(entry.date);
+                    months.add(`${date.getFullYear()}-${date.getMonth()}`);
+                });
+                
+                // 转换为数组并排序（最新的在前）
+                const monthArray = Array.from(months).sort((a, b) => {
+                    const [yearA, monthA] = a.split('-').map(Number);
+                    const [yearB, monthB] = b.split('-').map(Number);
+                    return new Date(yearB, monthB) - new Date(yearA, monthA);
+                });
+                
+                // 添加选项
+                monthArray.forEach(month => {
+                    const [year, monthNum] = month.split('-').map(Number);
+                    const date = new Date(year, monthNum);
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = `${year}年${monthNum + 1}月`;
+                    monthSelect.appendChild(option);
+                });
+                
+                // 添加事件监听器
+                monthSelect.addEventListener('change', (e) => {
+                    this.renderStats(e.target.value);
+                });
             },
             
             // 渲染型号列表
@@ -2014,40 +2403,91 @@
             },
             
             // 渲染统计数据
-            renderStats() {
+            renderStats(selectedMonth = null) {
                 const totalStats = DataManager.getTotalStats();
                 const modelStats = DataManager.getModelStats();
                 const dailyStats = DataManager.getDailyStats();
                 
-                // 更新总统计卡片
-                document.getElementById('total-hours').textContent = `${totalStats.totalHours.toFixed(1)} 分钟`;
-                document.getElementById('total-records').textContent = totalStats.totalRecords;
-                document.getElementById('total-units').textContent = totalStats.totalUnits.toFixed(1);
-                document.getElementById('total-models').textContent = totalStats.totalModels;
-                document.getElementById('avg-hours-per-unit').textContent = totalStats.avgHoursPerUnit;
+                // 确定要显示的月份
+                let year, month;
+                if (selectedMonth) {
+                    [year, month] = selectedMonth.split('-').map(Number);
+                } else {
+                    const now = new Date();
+                    year = now.getFullYear();
+                    month = now.getMonth();
+                }
+                
+                // 计算所选月份的工时和收入
+                let selectedMonthHours = 0;
+                let selectedMonthIncome = 0;
+                let selectedMonthRecordedDays = 0;
+                
+                dailyStats.forEach(stat => {
+                    const date = new Date(stat.date);
+                    if (date.getFullYear() === year && date.getMonth() === month) {
+                        selectedMonthHours += stat.hours;
+                        selectedMonthIncome += stat.amount;
+                        selectedMonthRecordedDays++;
+                    }
+                });
+                
+                // 计算所选月份的平均每日工时
+                const selectedMonthAvgDailyHours = selectedMonthRecordedDays > 0 ? 
+                    (selectedMonthHours / selectedMonthRecordedDays).toFixed(1) : '0';
+                
+                // 更新总统计卡片 - 显示所选月份的数据
+                document.getElementById('total-hours').textContent = `${selectedMonthHours.toFixed(1)} 分钟`;
+                document.getElementById('recorded-days').textContent = selectedMonthRecordedDays;
+                document.getElementById('avg-daily-hours').textContent = selectedMonthAvgDailyHours;
+                document.getElementById('total-income').textContent = `¥${selectedMonthIncome.toFixed(2)}`;
+                document.getElementById('current-month-income').textContent = `¥${selectedMonthIncome.toFixed(2)}`;
+                
+                // 计算变化百分比（与上一个月相比）
+                let changePercentage = 0;
+                if (selectedMonth) {
+                    const [year, month] = selectedMonth.split('-').map(Number);
+                    const prevMonth = month === 0 ? 11 : month - 1;
+                    const prevYear = month === 0 ? year - 1 : year;
+                    
+                    let prevMonthHours = 0;
+                    dailyStats.forEach(stat => {
+                        const date = new Date(stat.date);
+                        if (date.getFullYear() === prevYear && date.getMonth() === prevMonth) {
+                            prevMonthHours += stat.hours;
+                        }
+                    });
+                    
+                    if (prevMonthHours > 0) {
+                        changePercentage = ((selectedMonthHours - prevMonthHours) / prevMonthHours * 100).toFixed(1);
+                    }
+                } else {
+                    // 使用默认的变化百分比
+                    changePercentage = totalStats.changePercentage;
+                }
                 
                 // 更新变化百分比
                 const changeElement = document.getElementById('total-hours-change');
-                if (parseFloat(totalStats.changePercentage) > 0) {
+                if (parseFloat(changePercentage) > 0) {
                     changeElement.className = `ml-1 text-green-500`;
-                    changeElement.innerHTML = `<i class="fa fa-arrow-up"></i> ${totalStats.changePercentage}%`;
-                } else if (parseFloat(totalStats.changePercentage) < 0) {
+                    changeElement.innerHTML = `<i class="fa fa-arrow-up"></i> ${changePercentage}%`;
+                } else if (parseFloat(changePercentage) < 0) {
                     changeElement.className = `ml-1 text-red-500`;
-                    changeElement.innerHTML = `<i class="fa fa-arrow-down"></i> ${Math.abs(totalStats.changePercentage)}%`;
+                    changeElement.innerHTML = `<i class="fa fa-arrow-down"></i> ${Math.abs(changePercentage)}%`;
                 } else {
                     changeElement.className = `ml-1 text-gray-500`;
                     changeElement.innerHTML = `<i class="fa fa-minus"></i> 0%`;
                 }
                 
                 // 渲染每日工时图表
-                this.renderDailyChart(dailyStats);
+                this.renderDailyChart(dailyStats, selectedMonth);
                 
                 // 渲染型号工时占比图表
-                this.renderModelChart(modelStats.stats);
+                this.renderModelChart(modelStats.stats, selectedMonth);
             },
             
             // 渲染每日工时图表
-            renderDailyChart(data) {
+            renderDailyChart(data, selectedMonth = null) {
                 const ctx = document.getElementById('daily-chart').getContext('2d');
                 
                 // 销毁现有图表（如果存在）
@@ -2055,15 +2495,23 @@
                     window.dailyChart.destroy();
                 }
                 
-                // 只显示最近15天的数据
-                const recentData = data.slice(-15);
+                // 根据选择的月份过滤数据
+                let filteredData = data;
+                if (selectedMonth) {
+                    const [year, month] = selectedMonth.split('-').map(Number);
+                    filteredData = data.filter(item => {
+                        const date = new Date(item.date);
+                        return date.getFullYear() === year && date.getMonth() === month;
+                    });
+                }
                 
                 // 准备数据
-                const labels = recentData.map(item => this.formatDate(item.date, true));
-                const values = recentData.map(item => item.hours);
+                const labels = filteredData.map(item => this.formatDate(item.date, true));
+                const hoursData = filteredData.map(item => item.hours);
+                const amountData = filteredData.map(item => item.amount);
                 
                 // 如果没有数据，不创建图表
-                if (values.length === 0) {
+                if (hoursData.length === 0) {
                     return;
                 }
                 
@@ -2072,23 +2520,50 @@
                     type: 'bar',
                     data: {
                         labels: labels,
-                        datasets: [{
-                            label: '工时（分钟）',
-                            data: values,
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                            borderColor: 'rgba(59, 130, 246, 1)',
-                            borderWidth: 1
-                        }]
+                        datasets: [
+                            {
+                                label: '工时（分钟）',
+                                data: hoursData,
+                                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: '金额（元）',
+                                data: amountData,
+                                backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                                borderColor: 'rgba(16, 185, 129, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
                             y: {
-                                beginAtZero: true,
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
                                 title: {
                                     display: true,
                                     text: '工时（分钟）'
+                                },
+                                beginAtZero: true
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: '金额（元）'
+                                },
+                                beginAtZero: true,
+                                grid: {
+                                    drawOnChartArea: false
                                 }
                             }
                         },
@@ -2096,7 +2571,13 @@
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        return `工时: ${context.raw.toFixed(1)} 分钟`;
+                                        const label = context.dataset.label || '';
+                                        const value = context.raw || 0;
+                                        if (label.includes('工时')) {
+                                            return `${label}: ${value.toFixed(1)}`;
+                                        } else {
+                                            return `${label}: ¥${value.toFixed(2)}`;
+                                        }
                                     }
                                 }
                             }
@@ -2106,7 +2587,7 @@
             },
             
             // 渲染型号工时占比图表
-            renderModelChart(data) {
+            renderModelChart(data, selectedMonth = null) {
                 const ctx = document.getElementById('model-chart').getContext('2d');
                 
                 // 销毁现有图表（如果存在）
@@ -2119,9 +2600,32 @@
                     return;
                 }
                 
+                // 根据选择的月份过滤数据
+                let filteredData = data;
+                if (selectedMonth) {
+                    const [year, month] = selectedMonth.split('-').map(Number);
+                    filteredData = data.filter(item => {
+                        const date = new Date(item.date);
+                        return date.getFullYear() === year && date.getMonth() === month;
+                    });
+                }
+                
+                // 按型号分组计算工时
+                const modelGroups = {};
+                filteredData.forEach(item => {
+                    if (!modelGroups[item.modelId]) {
+                        modelGroups[item.modelId] = {
+                            name: item.name,
+                            totalHours: 0
+                        };
+                    }
+                    modelGroups[item.modelId].totalHours += item.totalHours;
+                });
+                
                 // 准备数据
-                const labels = data.map(item => item.name);
-                const values = data.map(item => item.totalHours);
+                const modelData = Object.values(modelGroups);
+                const labels = modelData.map(item => item.name);
+                const values = modelData.map(item => item.totalHours);
                 
                 // 生成颜色
                 const colors = this.generateColors(data.length);
@@ -2148,7 +2652,12 @@
                                         const value = context.raw || 0;
                                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                         const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                        return `${label}: ${value.toFixed(1)} 分钟 (${percentage}%)`;
+                                        
+                                        // 计算金额
+                                        const hourlyRate = DataManager.getHourlyRate();
+                                        const amount = (value / 60) * hourlyRate;
+                                        
+                                        return `${label}: ${value.toFixed(1)} 分钟 (${percentage}%) - ¥${amount.toFixed(2)}`;
                                     }
                                 }
                             },
@@ -2173,40 +2682,9 @@
                 return colors;
             },
             
-            // 显示通知
-            showNotification(success, message) {
-                const notification = document.getElementById('notification');
-                const icon = document.getElementById('notification-icon');
-                const messageEl = document.getElementById('notification-message');
-                
-                // 设置图标和颜色
-                if (success) {
-                    icon.className = 'fa fa-check-circle mr-2 text-green-400';
-                    notification.classList.remove('bg-red-600');
-                    notification.classList.add('bg-green-600');
-                } else {
-                    icon.className = 'fa fa-exclamation-circle mr-2 text-yellow-400';
-                    notification.classList.remove('bg-green-600');
-                    notification.classList.add('bg-red-600');
-                }
-                
-                // 设置消息
-                messageEl.textContent = message;
-                
-                // 显示通知
-                notification.classList.remove('translate-y-20', 'opacity-0');
-                notification.classList.add('translate-y-0', 'opacity-100');
-                
-                // 3秒后隐藏通知
-                setTimeout(() => {
-                    notification.classList.remove('translate-y-0', 'opacity-100');
-                    notification.classList.add('translate-y-20', 'opacity-0');
-                }, 3000);
-            },
-            
-            // 格式化日期显示
-            formatDate(dateStr, short = false) {
-                const date = new Date(dateStr);
+            // 格式化日期
+            formatDate(dateString, short = false) {
+                const date = new Date(dateString);
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1;
                 const day = date.getDate();
@@ -2216,6 +2694,31 @@
                 }
                 
                 return `${year}年${month}月${day}日`;
+            },
+            
+            // 显示通知
+            showNotification(isSuccess, message) {
+                const notification = document.getElementById('notification');
+                const icon = document.getElementById('notification-icon');
+                const messageElement = document.getElementById('notification-message');
+                
+                messageElement.textContent = message;
+                
+                if (isSuccess) {
+                    icon.className = 'fa fa-check-circle mr-2';
+                    notification.classList.remove('bg-red-500');
+                    notification.classList.add('bg-dark');
+                } else {
+                    icon.className = 'fa fa-exclamation-circle mr-2';
+                    notification.classList.remove('bg-dark');
+                    notification.classList.add('bg-red-500');
+                }
+                
+                notification.classList.remove('translate-y-20', 'opacity-0');
+                
+                setTimeout(() => {
+                    notification.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
             }
         };
 
@@ -2226,4 +2729,3 @@
     </script>
 </body>
 </html>
-    
