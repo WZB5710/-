@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -106,17 +107,17 @@
             </div>
             <nav class="hidden md:flex space-x-6">
                 <button id="nav-input" class="nav-btn text-primary font-medium border-b-2 border-primary py-1">工时录入</button>
-                <button id="nav-calendar" class="nav-btn text-neutral hover:text-primary font-medium py-1">日历视图</button>
+                <button id="nav-calendar" class="nav-btn text-neutral hover:text-primary font-medium py-1">工作日历</button>
                 <button id="nav-models" class="nav-btn text-neutral hover:text-primary font-medium py-1">型号管理</button>
                 <button id="nav-stats" class="nav-btn text-neutral hover:text-primary font-medium py-1">统计分析</button>
                 <button id="nav-settings" class="nav-btn text-neutral hover:text-primary font-medium py-1">设置</button>
             </nav>
-            <div class="flex items-center space-x-2 md:hidden">
-                <button id="mobile-search-btn" class="text-gray-700">
-                    <i class="fa fa-search text-xl"></i>
+            <div class="flex items-center space-x-4 md:hidden">
+                <button id="mobile-search-btn" class="text-gray-700 p-2">
+                    <i class="fa fa-search text-3xl"></i>
                 </button>
-                <button id="mobile-menu-btn" class="text-gray-700">
-                    <i class="fa fa-bars text-xl"></i>
+                <button id="mobile-menu-btn" class="text-gray-700 p-2">
+                    <i class="fa fa-bars text-3xl"></i>
                 </button>
             </div>
         </div>
@@ -124,7 +125,7 @@
         <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
             <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
                 <button id="mobile-nav-input" class="mobile-nav-btn text-left text-primary font-medium py-2">工时录入</button>
-                <button id="mobile-nav-calendar" class="mobile-nav-btn text-left text-neutral py-2">日历视图</button>
+                <button id="mobile-nav-calendar" class="mobile-nav-btn text-left text-neutral py-2">工作日历</button>
                 <button id="mobile-nav-models" class="mobile-nav-btn text-left text-neutral py-2">型号管理</button>
                 <button id="mobile-nav-stats" class="mobile-nav-btn text-left text-neutral py-2">统计分析</button>
                 <button id="mobile-nav-settings" class="mobile-nav-btn text-left text-neutral py-2">设置</button>
@@ -252,11 +253,11 @@
             </div>
         </section>
 
-        <!-- 日历视图面板 -->
+        <!-- 工作日历面板 -->
         <section id="calendar-panel" class="panel hidden">
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 class="text-2xl font-bold mb-6 text-dark flex items-center">
-                    <i class="fa fa-calendar text-primary mr-3"></i>日历视图
+                    <i class="fa fa-calendar text-primary mr-3"></i>工作日历
                 </h2>
                 
                 <!-- 日历导航 -->
@@ -573,8 +574,8 @@
     <!-- 页脚 -->
     <footer class="bg-dark text-white py-6">
         <div class="container mx-auto px-4 text-center">
-            <p>智能工时记录系统 © 2025 版权所有</p>
-            <p class="text-gray-400 text-sm mt-2">数据存储在本地浏览器中，请勿清除浏览器数据</p>
+            <p>智能工时记录系统</p>
+            <p class="text-gray-400 text-sm mt-2" style="color: rgb(255, 247, 247); font-weight: bold;">数据存储在本地浏览器中，请勿清除浏览器数据</p>
         </div>
     </footer>
 
@@ -706,6 +707,37 @@
                     return { success: true, message: '该日所有记录已删除' };
                 }
                 return { success: false, message: '没有可删除的记录' };
+            },
+            
+            // 删除单个工作记录
+            deleteWorkEntry(entryId) {
+                const allRecords = this.getDailyRecords();
+                let deleted = false;
+                
+                // 遍历所有日期的记录
+                Object.keys(allRecords).forEach(date => {
+                    const entries = allRecords[date];
+                    const entryIndex = entries.findIndex(entry => entry.id === entryId);
+                    
+                    if (entryIndex !== -1) {
+                        // 删除找到的记录
+                        entries.splice(entryIndex, 1);
+                        
+                        // 如果该日期没有记录了，删除整个日期的键
+                        if (entries.length === 0) {
+                            delete allRecords[date];
+                        }
+                        
+                        deleted = true;
+                    }
+                });
+                
+                if (deleted) {
+                    this.saveDailyRecords(allRecords);
+                    return { success: true, message: '记录已删除' };
+                } else {
+                    return { success: false, message: '找不到要删除的记录' };
+                }
             },
             
             // 获取工时单价设置
@@ -1458,15 +1490,36 @@
             deleteEntryInEditMode(index) {
                 const entriesContainer = document.getElementById('day-entries-container');
                 if (entriesContainer.children[index]) {
-                    entriesContainer.removeChild(entriesContainer.children[index]);
+                    // 获取当前日期的记录
+                    let entries = DataManager.getRecordsByDate(this.currentDayDetailDate) || [];
                     
-                    // 重新计算索引并更新事件
-                    this.renderDayEntriesInEditMode();
-                    
-                    // 更新总工时和总金额
-                    this.updateDayTotalHoursInEditMode();
+                    // 检查索引是否有效
+                    if (index >= 0 && index < entries.length) {
+                        // 删除数据管理器中的记录
+                        const entryToDelete = entries[index];
+                        const result = DataManager.deleteWorkEntry(entryToDelete.id);
+                        
+                        if (result.success) {
+                            // 从DOM中删除元素
+                            entriesContainer.removeChild(entriesContainer.children[index]);
+                            
+                            // 重新计算索引并更新事件
+                            this.renderDayEntriesInEditMode();
+                            
+                            // 更新总工时和总金额
+                            this.updateDayTotalHoursInEditMode();
+                            
+                            this.showNotification(true, '记录已删除');
+                        } else {
+                            this.showNotification(false, '删除失败：' + result.message);
+                        }
+                    } else {
+                        console.error('删除失败：索引无效', index);
+                        this.showNotification(false, '删除失败：索引无效');
+                    }
                 } else {
                     console.error('删除失败：找不到索引为', index, '的条目');
+                    this.showNotification(false, '删除失败：找不到对应的记录');
                 }
             },
             
@@ -1612,13 +1665,18 @@
             formatUnitNumber(number) {
                 // 提取数字部分
                 const num = number.replace(/[^0-9]/g, '');
-                // 确保4位数字，不足补0
-                return num.padStart(4, '0');
+                // 取最后4位数字，不足4位则补0
+                const lastFourDigits = num.slice(-4).padStart(4, '0');
+                return lastFourDigits;
             },
             
             // 获取年份后两位
             getYearSuffix(dateStr) {
                 const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    console.error('无效的日期格式:', dateStr);
+                    return '';
+                }
                 return date.getFullYear().toString().slice(-2);
             },
             
@@ -1644,6 +1702,10 @@
                     
                     // 获取年份后两位
                     const yearSuffix = this.getYearSuffix(dateStr);
+                    if (!yearSuffix) {
+                        this.showNotification(false, '无法获取年份信息');
+                        return;
+                    }
                     
                     entryItems.forEach((item) => {
                         const modelName = item.querySelector('.model-name')?.textContent || '';
@@ -1652,21 +1714,51 @@
                         // 解析编号
                         const unitsArray = dataUnits.split('/');
                         
-                        // 格式化每个编号：添加年份后两位+4位编号
-                        const formattedUnits = unitsArray.map(unit => {
+                        // 格式化每个编号或工作内容
+                        const formattedUnits = unitsArray.map((unit, index) => {
+                            // 检查是否是文字描述类作业内容（格式为"工作内容（时间）"）
+                            const descMatch = unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/);
+                            if (descMatch) {
+                                // 如果是文字描述类作业内容，直接返回原格式
+                                return unit;
+                            }
+                            
                             // 分离数量部分（如果有）
                             const quantityMatch = unit.match(/(.*?)(\(\d+(\.\d+)?\))?$/);
                             const numPart = quantityMatch[1];
                             const quantityPart = quantityMatch[2] || '';
                             
-                            // 格式化编号部分
-                            const formattedNum = this.formatUnitNumber(numPart);
-                            return `${yearSuffix}${formattedNum}${quantityPart}`;
+                            // 直接使用原始编号，不进行格式化
+                            return `${numPart}${quantityPart}`;
                         }).join('/');
                         
                         // 组合型号和编号
-                        if (modelName && formattedUnits) {
-                            copyText += `${modelName}${formattedUnits}\n`;
+                        if (formattedUnits) {
+                            // 检查是否是纯文字型号（不包含数字）
+                            const isTextOnlyModel = !/\d/.test(modelName);
+                            
+                            // 检查是否是纯文字工作内容（所有单元都是文字描述）
+                            const allTextDescriptions = unitsArray.every(unit => 
+                                unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/)
+                            );
+                            
+                            if (modelName && (isTextOnlyModel || allTextDescriptions)) {
+                                // 如果是纯文字型号或纯文字工作内容，只显示工作内容，不显示型号
+                                copyText += `${formattedUnits}\n`;
+                            } else if (modelName) {
+                                // 否则显示型号+年份+编号
+                                // 查找型号中的年份位置
+                                const yearMatch = modelName.match(/(\d{2})$/);
+                                if (yearMatch) {
+                                    const year = yearMatch[1];
+                                    // 将年份插入到型号和编号之间
+                                    const modelWithoutYear = modelName.replace(/\d{2}$/, '');
+                                    copyText += `${modelWithoutYear}${year}${formattedUnits}\n`;
+                                } else {
+                                    // 如果型号中没有年份，直接显示型号+编号
+                                    copyText += `${modelName}${formattedUnits}\n`;
+                                }
+                            }
                         }
                     });
                     
@@ -1709,24 +1801,59 @@
                     
                     const dateStr = this.currentDayDetailDate;
                     const yearSuffix = this.getYearSuffix(dateStr);
+                    if (!yearSuffix) {
+                        this.showNotification(false, '无法获取年份信息');
+                        return;
+                    }
                     
                     // 解析编号
                     const unitsArray = units.split('/');
                     
-                    // 格式化每个编号
-                    const formattedUnits = unitsArray.map(unit => {
+                    // 格式化每个编号或工作内容
+                    const formattedUnits = unitsArray.map((unit, index) => {
+                        // 检查是否是文字描述类作业内容（格式为"工作内容（时间）"）
+                        const descMatch = unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/);
+                        if (descMatch) {
+                            // 如果是文字描述类作业内容，直接返回原格式
+                            return unit;
+                        }
+                        
                         // 分离数量部分（如果有）
                         const quantityMatch = unit.match(/(.*?)(\(\d+(\.\d+)?\))?$/);
                         const numPart = quantityMatch[1];
                         const quantityPart = quantityMatch[2] || '';
                         
-                        // 格式化编号部分
-                        const formattedNum = this.formatUnitNumber(numPart);
-                        return `${yearSuffix}${formattedNum}${quantityPart}`;
+                        // 直接使用原始编号，不进行格式化
+                        return `${numPart}${quantityPart}`;
                     }).join('/');
                     
-                    // 组合型号和编号
-                    const text = `${model}${formattedUnits}`;
+                    // 检查是否是纯文字型号（不包含数字）
+                    const isTextOnlyModel = !/\d/.test(model);
+                    
+                    // 检查是否是纯文字工作内容（所有单元都是文字描述）
+                    const allTextDescriptions = unitsArray.every(unit => 
+                        unit.match(/^([^0-9]+)\((\d+)\)$/)
+                    );
+                    
+                    // 组合文本
+                    let text;
+                    if (isTextOnlyModel || allTextDescriptions) {
+                        // 如果是纯文字型号或纯文字工作内容，只显示工作内容，不显示型号
+                        text = formattedUnits;
+                    } else {
+                        // 否则显示型号+年份+编号
+                        // 查找型号中的年份位置
+                        const yearMatch = model.match(/(\d{2})$/);
+                        if (yearMatch) {
+                            const year = yearMatch[1];
+                            // 将年份插入到型号和编号之间
+                            const modelWithoutYear = model.replace(/\d{2}$/, '');
+                            text = `${modelWithoutYear}${year}${formattedUnits}`;
+                        } else {
+                            // 如果型号中没有年份，直接显示型号+编号
+                            text = `${model}${formattedUnits}`;
+                        }
+                    }
                     
                     // 复制到剪贴板
                     if (navigator.clipboard) {
@@ -1799,7 +1926,8 @@
                         if (!part) return;
                         
                         // 改进正则表达式，确保正确识别编号和括号内的数量
-                        const match = part.match(/^([^\(\)]+)[\(\（](\d+(\.\d+)?)[\)\）]$/);
+                        // 匹配格式：编号(数量) 或 编号（数量），其中数量是数字
+                        const match = part.match(/^(.*?)[\(\（](\d+(\.\d+)?)[\)\）]$/);
                         
                         if (match) {
                             // 带数量的格式：提取编号和数量
@@ -1854,9 +1982,7 @@
                             <textarea class="unit-numbers-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" 
                                       rows="3" 
                                       data-index="${index}"
-                                      placeholder="例如：250011
-250012/250013
-250014(0.5)">${entry.unitNumbers}</textarea>
+                                      placeholder="例如：250111/112">${entry.unitNumbers}</textarea>
                         </div>
                     `;
                     container.appendChild(entryElement);
@@ -3024,9 +3150,9 @@
                                 </div>
                             `;
                             
-                            // 添加点击事件 - 跳转到日历视图并显示详情
+                            // 添加点击事件 - 跳转到工作日历并显示详情
                             entryElement.addEventListener('click', () => {
-                                // 切换到日历视图
+                                // 切换到工作日历
                                 this.showPanel('calendar-panel', 'nav-calendar');
                                 
                                 // 显示日期详情
@@ -3187,12 +3313,12 @@
                                 </div>
                             `;
                             
-                            // 添加点击事件 - 跳转到日历视图并显示详情
+                            // 添加点击事件 - 跳转到工作日历并显示详情
                             entryElement.addEventListener('click', () => {
                                 // 关闭移动端搜索面板
                                 this.closeMobileSearch();
                                 
-                                // 切换到日历视图
+                                // 切换到工作日历
                                 this.showPanel('calendar-panel', 'nav-calendar');
                                 
                                 // 显示日期详情
