@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -272,9 +271,14 @@
                             <span id="month-total-amount" class="text-sm text-secondary font-medium"></span>
                         </div>
                     </div>
-                    <button id="next-month" class="p-2 rounded-full hover:bg-gray-100 transition-custom">
-                        <i class="fa fa-chevron-right text-gray-700"></i>
-                    </button>
+                    <div class="flex space-x-2">
+                        <button id="copy-month-records" class="p-2 rounded-full hover:bg-gray-100 transition-custom" title="复制该月所有记录">
+                            <i class="fa fa-copy text-gray-700"></i>
+                        </button>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-100 transition-custom">
+                            <i class="fa fa-chevron-right text-gray-700"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- 日历网格 -->
@@ -650,20 +654,8 @@
                 
                 this.saveModels(newModels);
                 
-                // 同时删除该型号的所有记录
-                const records = this.getDailyRecords();
-                const newRecords = {};
-                
-                Object.keys(records).forEach(date => {
-                    newRecords[date] = records[date].filter(entry => entry.modelId !== id);
-                    if (newRecords[date].length === 0) {
-                        delete newRecords[date];
-                    }
-                });
-                
-                this.saveDailyRecords(newRecords);
-                
-                return { success: true, message: '型号及相关记录已删除' };
+                // 不再删除该型号的相关记录，只删除型号本身
+                return { success: true, message: '型号已删除，相关记录已保留' };
             },
             
             // 根据ID获取型号
@@ -682,6 +674,21 @@
             saveDailyRecords(records) {
                 localStorage.setItem('workHourDailyRecords', JSON.stringify(records));
                 this.updateEventListeners();
+            },
+            
+            // 获取特定月份的所有记录
+            getRecordsByMonth(year, month) {
+                const allRecords = this.getDailyRecords();
+                const monthRecords = {};
+                
+                Object.keys(allRecords).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    if (date.getFullYear() === year && date.getMonth() === month) {
+                        monthRecords[dateStr] = allRecords[dateStr];
+                    }
+                });
+                
+                return monthRecords;
             },
             
             // 获取特定日期的记录
@@ -1181,6 +1188,11 @@
                 document.getElementById('next-month').addEventListener('click', () => {
                     this.currentCalendarDate.setMonth(this.currentCalendarDate.getMonth() + 1);
                     this.renderCalendar();
+                });
+                
+                // 复制该月所有记录按钮
+                document.getElementById('copy-month-records').addEventListener('click', () => {
+                    this.copyMonthRecords();
                 });
                 
                 // 日期详情模态框事件
@@ -1872,7 +1884,116 @@
                 }
             },
             
-            // 复制文本的fallback方法
+            // 复制该月所有记录
+            copyMonthRecords() {
+                try {
+                    const year = this.currentCalendarDate.getFullYear();
+                    const month = this.currentCalendarDate.getMonth();
+                    
+                    // 获取该月所有记录
+                    const monthRecords = DataManager.getRecordsByMonth(year, month);
+                    
+                    if (Object.keys(monthRecords).length === 0) {
+                        this.showNotification(false, '该月没有工作记录');
+                        return;
+                    }
+                    
+                    let copyText = '';
+                    
+                    // 按日期排序
+                    const sortedDates = Object.keys(monthRecords).sort();
+                    
+                    sortedDates.forEach(dateStr => {
+                        const entries = monthRecords[dateStr];
+                        if (entries.length === 0) return;
+                        
+                        const date = new Date(dateStr);
+                        const monthNum = date.getMonth() + 1;
+                        const day = date.getDate();
+                        
+                        entries.forEach(entry => {
+                            // 处理型号和编号
+                            let modelText = '';
+                            
+                            // 获取型号信息
+                            const model = DataManager.getModelById(entry.modelId);
+                            
+                            // 格式化编号
+                            const formattedUnits = entry.units.map(unit => {
+                                // 检查是否是文字描述类作业内容（格式为"工作内容（时间）"）
+                                const descMatch = unit.number.match(/^([^/]+)\((\d+(\.\d+)?)\)$/);
+                                if (descMatch) {
+                                    // 如果是文字描述类作业内容，直接返回原格式
+                                    return unit.number;
+                                }
+                                
+                                // 分离数量部分（如果有）
+                                const quantityMatch = unit.number.match(/(.*?)(\(\d+(\.\d+)?\))?$/);
+                                const numPart = quantityMatch[1];
+                                const quantityPart = quantityMatch[2] || '';
+                                
+                                // 直接使用原始编号，不进行格式化
+                                return `${numPart}${quantityPart}`;
+                            }).join('/');
+                            
+                            if (model) {
+                                // 检查是否是纯文字型号（不包含数字）
+                                const isTextOnlyModel = !/\d/.test(model.name);
+                                
+                                // 检查是否是纯文字工作内容（所有单元都是文字描述）
+                                const allTextDescriptions = entry.units.every(unit => 
+                                    unit.number.match(/^([^/]+)\((\d+(\.\d+)?)\)$/)
+                                );
+                                
+                                if (isTextOnlyModel || allTextDescriptions) {
+                                    // 如果是纯文字型号或纯文字工作内容，只显示工作内容
+                                    modelText = formattedUnits;
+                                } else {
+                                    // 否则显示型号+年份+编号
+                                    // 查找型号中的年份位置
+                                    const yearMatch = model.name.match(/(\d{2})$/);
+                                    if (yearMatch) {
+                                        const year = yearMatch[1];
+                                        // 将年份插入到型号和编号之间
+                                        const modelWithoutYear = model.name.replace(/\d{2}$/, '');
+                                        modelText = `${modelWithoutYear}${year}${formattedUnits}`;
+                                    } else {
+                                        // 如果型号中没有年份，直接显示型号+编号
+                                        modelText = `${model.name}${formattedUnits}`;
+                                    }
+                                }
+                            } else {
+                                // 如果没有型号信息，使用工作内容
+                                modelText = entry.content || formattedUnits;
+                            }
+                            
+                            // 添加到复制文本
+                            copyText += `${monthNum}/${day} ${modelText}\n`;
+                        });
+                    });
+                    
+                    // 检查是否有有效内容
+                if (!copyText.trim()) {
+                    this.showNotification(false, '没有有效的记录可复制');
+                    return;
+                }
+                
+                // 复制到剪贴板
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(copyText.trim()).then(() => {
+                        this.showNotification(true, '该月所有记录已复制到剪贴板');
+                    }).catch(err => {
+                        console.error('Clipboard API 失败:', err);
+                        this.fallbackCopyText(copyText.trim());
+                    });
+                } else {
+                    this.fallbackCopyText(copyText.trim());
+                }
+            } catch (err) {
+                console.error('复制失败: ', err);
+                this.showNotification(false, '复制失败，请手动复制');
+            }
+        },
             fallbackCopyText(text) {
                 try {
                     const textArea = document.createElement('textarea');
@@ -2575,7 +2696,7 @@
                 document.querySelectorAll('.delete-model').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const id = e.currentTarget.dataset.id;
-                        if (confirm('确定要删除这个型号及其所有相关记录吗？')) {
+                        if (confirm('确定要删除这个型号吗？相关记录将被保留。')) {
                             const result = DataManager.deleteModel(id);
                             this.showNotification(result.success, result.message);
                         }
