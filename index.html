@@ -1702,8 +1702,13 @@
                     }
                     
                     const dateStr = this.currentDayDetailDate;
-                    const formattedDate = this.formatDate(dateStr, true);
-                    let copyText = `${formattedDate}\n`;
+                    const date = new Date(dateStr);
+                    const month = date.getMonth() + 1;
+                    const day = date.getDate();
+                    
+                    // 格式化为 "3/8" 格式
+                    const shortDate = `${month}/${day}`;
+                    let copyText = `${shortDate}\n`;
                     
                     // 获取所有条目并构建复制文本
                     const entryItems = document.querySelectorAll('#day-entries-container .entry-item');
@@ -1712,22 +1717,20 @@
                         return;
                     }
                     
-                    // 获取年份后两位
-                    const yearSuffix = this.getYearSuffix(dateStr);
-                    if (!yearSuffix) {
-                        this.showNotification(false, '无法获取年份信息');
-                        return;
-                    }
+                    // 按型号分组处理
+                    const modelEntries = new Map();
                     
                     entryItems.forEach((item) => {
                         const modelName = item.querySelector('.model-name')?.textContent || '';
                         const dataUnits = item.querySelector('.copy-entry-btn')?.dataset.units || '';
                         
+                        if (!modelName || !dataUnits) return;
+                        
                         // 解析编号
                         const unitsArray = dataUnits.split('/');
                         
-                        // 格式化每个编号或工作内容
-                        const formattedUnits = unitsArray.map((unit, index) => {
+                        // 格式化每个编号
+                        const formattedUnits = unitsArray.map((unit) => {
                             // 检查是否是文字描述类作业内容（格式为"工作内容（时间）"）
                             const descMatch = unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/);
                             if (descMatch) {
@@ -1740,37 +1743,48 @@
                             const numPart = quantityMatch[1];
                             const quantityPart = quantityMatch[2] || '';
                             
-                            // 直接使用原始编号，不进行格式化
                             return `${numPart}${quantityPart}`;
                         }).join('/');
                         
-                        // 组合型号和编号
-                        if (formattedUnits) {
-                            // 检查是否是纯文字型号（不包含数字）
-                            const isTextOnlyModel = !/\d/.test(modelName);
-                            
-                            // 检查是否是纯文字工作内容（所有单元都是文字描述）
-                            const allTextDescriptions = unitsArray.every(unit => 
+                        // 将相同型号的条目合并
+                        if (!modelEntries.has(modelName)) {
+                            modelEntries.set(modelName, []);
+                        }
+                        modelEntries.get(modelName).push(formattedUnits);
+                    });
+                    
+                    // 构建最终的复制文本，每种型号单独一行
+                    modelEntries.forEach((unitsList, modelName) => {
+                        // 检查是否是纯文字型号（不包含数字）
+                        const isTextOnlyModel = !/\d/.test(modelName);
+                        
+                        // 检查是否是纯文字工作内容
+                        const allTextDescriptions = unitsList.every(units => 
+                            units.split('/').every(unit => 
                                 unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/)
-                            );
-                            
-                            if (modelName && (isTextOnlyModel || allTextDescriptions)) {
-                                // 如果是纯文字型号或纯文字工作内容，只显示工作内容，不显示型号
-                                copyText += `${formattedUnits}\n`;
-                            } else if (modelName) {
-                                // 否则显示型号+年份+编号
+                            )
+                        );
+                        
+                        if (isTextOnlyModel || allTextDescriptions) {
+                            // 如果是纯文字型号或纯文字工作内容，只显示工作内容
+                            unitsList.forEach(units => {
+                                copyText += `${units}\n`;
+                            });
+                        } else {
+                            // 否则显示型号+编号
+                            unitsList.forEach(units => {
                                 // 查找型号中的年份位置
                                 const yearMatch = modelName.match(/(\d{2})$/);
                                 if (yearMatch) {
                                     const year = yearMatch[1];
                                     // 将年份插入到型号和编号之间
                                     const modelWithoutYear = modelName.replace(/\d{2}$/, '');
-                                    copyText += `${modelWithoutYear}${year}${formattedUnits}\n`;
+                                    copyText += `${modelWithoutYear}${year}${units}\n`;
                                 } else {
                                     // 如果型号中没有年份，直接显示型号+编号
-                                    copyText += `${modelName}${formattedUnits}\n`;
+                                    copyText += `${modelName}${units}\n`;
                                 }
-                            }
+                            });
                         }
                     });
                     
@@ -1911,12 +1925,13 @@
                         const monthNum = date.getMonth() + 1;
                         const day = date.getDate();
                         
+                        // 按型号分组处理
+                        const modelEntries = new Map();
+                        
                         entries.forEach(entry => {
-                            // 处理型号和编号
-                            let modelText = '';
-                            
                             // 获取型号信息
                             const model = DataManager.getModelById(entry.modelId);
+                            if (!model) return;
                             
                             // 格式化编号
                             const formattedUnits = entry.units.map(unit => {
@@ -1932,44 +1947,59 @@
                                 const numPart = quantityMatch[1];
                                 const quantityPart = quantityMatch[2] || '';
                                 
-                                // 直接使用原始编号，不进行格式化
                                 return `${numPart}${quantityPart}`;
                             }).join('/');
                             
-                            if (model) {
+                            // 将相同型号的条目合并
+                            if (!modelEntries.has(model.name)) {
+                                modelEntries.set(model.name, []);
+                            }
+                            modelEntries.get(model.name).push(formattedUnits);
+                        });
+                        
+                        // 构建该日期的复制文本
+                        if (modelEntries.size > 0) {
+                            // 添加日期（如：3/8）
+                            copyText += `${monthNum}/${day}\n`;
+                            
+                            // 每种型号单独一行
+                            modelEntries.forEach((unitsList, modelName) => {
                                 // 检查是否是纯文字型号（不包含数字）
-                                const isTextOnlyModel = !/\d/.test(model.name);
+                                const isTextOnlyModel = !/\d/.test(modelName);
                                 
-                                // 检查是否是纯文字工作内容（所有单元都是文字描述）
-                                const allTextDescriptions = entry.units.every(unit => 
-                                    unit.number.match(/^([^/]+)\((\d+(\.\d+)?)\)$/)
+                                // 检查是否是纯文字工作内容
+                                const allTextDescriptions = unitsList.every(units => 
+                                    units.split('/').every(unit => 
+                                        unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/)
+                                    )
                                 );
                                 
                                 if (isTextOnlyModel || allTextDescriptions) {
                                     // 如果是纯文字型号或纯文字工作内容，只显示工作内容
-                                    modelText = formattedUnits;
+                                    unitsList.forEach(units => {
+                                        copyText += `${units}\n`;
+                                    });
                                 } else {
-                                    // 否则显示型号+年份+编号
-                                    // 查找型号中的年份位置
-                                    const yearMatch = model.name.match(/(\d{2})$/);
-                                    if (yearMatch) {
-                                        const year = yearMatch[1];
-                                        // 将年份插入到型号和编号之间
-                                        const modelWithoutYear = model.name.replace(/\d{2}$/, '');
-                                        modelText = `${modelWithoutYear}${year}${formattedUnits}`;
-                                    } else {
-                                        // 如果型号中没有年份，直接显示型号+编号
-                                        modelText = `${model.name}${formattedUnits}`;
-                                    }
+                                    // 否则显示型号+编号
+                                    unitsList.forEach(units => {
+                                        // 查找型号中的年份位置
+                                        const yearMatch = modelName.match(/(\d{2})$/);
+                                        if (yearMatch) {
+                                            const year = yearMatch[1];
+                                            // 将年份插入到型号和编号之间
+                                            const modelWithoutYear = modelName.replace(/\d{2}$/, '');
+                                            copyText += `${modelWithoutYear}${year}${units}\n`;
+                                        } else {
+                                            // 如果型号中没有年份，直接显示型号+编号
+                                            copyText += `${modelName}${units}\n`;
+                                        }
+                                    });
                                 }
-                            } else {
-                                // 如果没有型号信息，使用工作内容
-                                modelText = entry.content || formattedUnits;
-                            }
+                            });
                             
-                            // 添加到复制文本
-                            copyText += `${monthNum}/${day} ${modelText}\n`;
-                        });
+                            // 日期之间空一行
+                            copyText += '\n';
+                        }
                     });
                     
                     // 检查是否有有效内容
