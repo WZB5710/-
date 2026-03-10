@@ -4,7 +4,7 @@
     <title>智能工时记录系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -482,20 +482,14 @@
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- 按日期统计图表 -->
+            <div class="grid grid-cols-1 gap-6 mb-8">
+                <!-- 按型号统计文本描述 -->
                 <div class="bg-white rounded-lg shadow-lg p-6 card-shadow">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">每日工时统计</h3>
-                    <div class="h-80">
-                        <canvas id="daily-chart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- 按型号统计图表 -->
-                <div class="bg-white rounded-lg shadow-lg p-6 card-shadow">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">当月各型号工时占比</h3>
-                    <div class="h-80">
-                        <canvas id="model-chart"></canvas>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-700">当月各型号工时统计</h3>
+                    <div class="h-80 overflow-y-auto" id="model-stats-text">
+                        <div class="text-center text-gray-500 py-8">
+                            暂无数据
+                        </div>
                     </div>
                 </div>
             </div>
@@ -636,10 +630,20 @@
                     return { success: false, message: '该型号名称已被使用' };
                 }
                 
+                const oldHours = models[index].hours;
+                const newHoursInt = parseInt(newHours);
+                
+                // 更新型号信息
                 models[index].name = newName;
-                models[index].hours = parseInt(newHours);
+                models[index].hours = newHoursInt;
                 
                 this.saveModels(models);
+                
+                // 如果工时发生变化，更新所有相关记录
+                if (oldHours !== newHoursInt) {
+                    this.updateRecordsForModel(id, oldHours, newHoursInt);
+                }
+                
                 return { success: true, message: '型号更新成功' };
             },
             
@@ -924,24 +928,81 @@
             // 导入数据
             importData(jsonData) {
                 try {
-                    const data = JSON.parse(jsonData);
+                    // 添加调试信息
+                    console.log('开始导入数据...');
+                    console.log('原始数据:', jsonData.substring(0, 500) + '...');
                     
+                    // 尝试解析JSON数据
+                    let data;
+                    try {
+                        data = JSON.parse(jsonData);
+                        console.log('JSON解析成功');
+                    } catch (parseError) {
+                        console.error('JSON解析失败:', parseError);
+                        // 尝试清理JSON字符串（移除可能的BOM字符或其他无效字符）
+                        const cleanedData = jsonData.replace(/^\uFEFF/, '').trim();
+                        data = JSON.parse(cleanedData);
+                        console.log('清理后JSON解析成功');
+                    }
+                    
+                    let hasImportedData = false;
+                    
+                    // 处理型号数据
                     if (data.models && Array.isArray(data.models)) {
+                        console.log('找到型号数据，共', data.models.length, '个型号');
                         this.saveModels(data.models);
+                        hasImportedData = true;
+                    } else {
+                        console.log('未找到有效的型号数据');
                     }
                     
-                    if (data.records && typeof data.records === 'object') {
-                        this.saveDailyRecords(data.records);
+                    // 处理记录数据 - 完全放宽验证
+                    if (data.records) {
+                        console.log('找到记录数据，类型:', typeof data.records);
+                        
+                        try {
+                            // 直接尝试保存记录数据，不进行严格验证
+                            this.saveDailyRecords(data.records);
+                            console.log('记录数据保存成功');
+                            hasImportedData = true;
+                        } catch (recordsError) {
+                            console.error('保存记录数据时出错:', recordsError);
+                            
+                            // 如果直接保存失败，尝试作为字符串保存
+                            try {
+                                localStorage.setItem('workHourDailyRecords', JSON.stringify(data.records));
+                                console.log('记录数据作为字符串保存成功');
+                                hasImportedData = true;
+                            } catch (stringifyError) {
+                                console.error('字符串化记录数据时出错:', stringifyError);
+                            }
+                        }
+                    } else {
+                        console.log('未找到记录数据');
                     }
                     
+                    // 处理工时单价设置
                     if (typeof data.hourlyRate === 'number') {
+                        console.log('找到工时单价设置:', data.hourlyRate);
                         this.saveHourlyRate(data.hourlyRate);
+                        hasImportedData = true;
+                    } else {
+                        console.log('未找到有效的工时单价设置');
                     }
                     
-                    return { success: true, message: '数据导入成功' };
+                    // 强制刷新UI
+                    this.updateEventListeners();
+                    
+                    if (hasImportedData) {
+                        console.log('数据导入成功');
+                        return { success: true, message: '数据导入成功' };
+                    } else {
+                        console.log('未找到有效的数据进行导入');
+                        return { success: false, message: '未找到有效的数据进行导入' };
+                    }
                 } catch (error) {
                     console.error('导入数据失败:', error);
-                    return { success: false, message: '数据导入失败，请检查文件格式' };
+                    return { success: false, message: '数据导入失败，请检查文件格式。错误详情: ' + error.message };
                 }
             },
             
@@ -952,6 +1013,33 @@
                 localStorage.removeItem('workHourRate');
                 this.updateEventListeners();
                 return { success: true, message: '所有数据已清空' };
+            },
+            
+            // 更新型号变更后的相关记录
+            updateRecordsForModel(modelId, oldHours, newHours) {
+                const allRecords = this.getDailyRecords();
+                let hasChanges = false;
+                
+                // 遍历所有日期的记录
+                Object.keys(allRecords).forEach(date => {
+                    const entries = allRecords[date];
+                    
+                    // 检查并更新该型号的所有记录
+                    entries.forEach(entry => {
+                        if (entry.modelId === modelId) {
+                            // 更新工时信息
+                            entry.hoursPerUnit = newHours;
+                            hasChanges = true;
+                        }
+                    });
+                });
+                
+                // 如果有变更，保存更新后的记录
+                if (hasChanges) {
+                    this.saveDailyRecords(allRecords);
+                }
+                
+                return hasChanges;
             },
             
             // 事件监听器列表
@@ -1263,10 +1351,35 @@
                 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const result = DataManager.importData(e.target.result);
-                    this.showNotification(result.success, result.message);
-                    // 重置文件输入，允许重复选择同一个文件
-                    document.getElementById('import-file').value = '';
+                    try {
+                        console.log('开始处理导入文件...');
+                        const result = DataManager.importData(e.target.result);
+                        
+                        // 延迟刷新UI，确保DOM元素已加载
+                        setTimeout(() => {
+                            // 重新渲染所有UI组件
+                            this.renderAll();
+                            
+                            // 如果当前在统计分析页面，需要特殊处理图表
+                            if (!document.getElementById('stats-panel').classList.contains('hidden')) {
+                                // 重新初始化统计月份选择
+                                this.renderStatsMonthSelect();
+                                // 重新渲染统计数据
+                                const monthSelect = document.getElementById('stats-month-select');
+                                if (monthSelect) {
+                                    this.renderStats(monthSelect.value);
+                                }
+                            }
+                        }, 100);
+                        
+                        this.showNotification(result.success, result.message);
+                    } catch (error) {
+                        console.error('处理导入文件时出错:', error);
+                        this.showNotification(false, '导入过程中发生错误: ' + error.message);
+                    } finally {
+                        // 重置文件输入，允许重复选择同一个文件
+                        document.getElementById('import-file').value = '';
+                    }
                 };
                 reader.readAsText(file);
             },
@@ -1789,7 +1902,7 @@
                     });
                     
                     // 检查是否有有效内容
-                    if (copyText.trim().length <= formattedDate.length + 1) {
+                    if (copyText.trim().length <= shortDate.length + 1) {
                         this.showNotification(false, '没有有效的详情可复制');
                         return;
                     }
@@ -2838,220 +2951,17 @@
                     changeElement.innerHTML = `<i class="fa fa-minus"></i> 0%`;
                 }
                 
-                // 渲染每日工时图表
-                this.renderDailyChart(dailyStats, selectedMonth);
+                // 每日工时图表已移除
                 
                 // 渲染型号工时占比图表
                 this.renderModelChart(modelStats.stats, selectedMonth);
             },
             
-            // 渲染每日工时图表
-            renderDailyChart(data, selectedMonth = null) {
-                const ctx = document.getElementById('daily-chart').getContext('2d');
-                
-                // 销毁现有图表（如果存在）
-                if (window.dailyChart) {
-                    window.dailyChart.destroy();
-                }
-                
-                // 根据选择的月份过滤数据
-                let filteredData = data;
-                if (selectedMonth) {
-                    const [year, month] = selectedMonth.split('-').map(Number);
-                    filteredData = data.filter(item => {
-                        const date = new Date(item.date);
-                        return date.getFullYear() === year && date.getMonth() === month;
-                    });
-                } else {
-                    // 如果没有选择月份，默认显示当前月份的数据
-                    const now = new Date();
-                    const currentYear = now.getFullYear();
-                    const currentMonth = now.getMonth();
-                    filteredData = data.filter(item => {
-                        const date = new Date(item.date);
-                        return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
-                    });
-                }
-                
-                // 准备数据 - 确保显示当月所有日期
-                let labels = [];
-                let hoursData = [];
-                let amountData = [];
-                
-                if (selectedMonth || filteredData.length > 0) {
-                    // 获取年月信息
-                    let year, month;
-                    if (selectedMonth) {
-                        [year, month] = selectedMonth.split('-').map(Number);
-                    } else {
-                        const firstDate = new Date(filteredData[0].date);
-                        year = firstDate.getFullYear();
-                        month = firstDate.getMonth();
-                    }
-                    
-                    // 获取当月天数
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    
-                    // 创建日期到数据的映射
-                    const dateMap = {};
-                    filteredData.forEach(item => {
-                        const date = new Date(item.date);
-                        const day = date.getDate();
-                        dateMap[day] = {
-                            hours: item.hours,
-                            amount: item.amount
-                        };
-                    });
-                    
-                    // 生成当月所有日期的数据
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                        labels.push(this.formatDate(dateStr, true));
-                        
-                        const dayData = dateMap[day] || { hours: 0, amount: 0 };
-                        hoursData.push(dayData.hours);
-                        amountData.push(dayData.amount);
-                    }
-                }
-                
-                // 如果没有数据，显示提示信息
-                if (hoursData.length === 0) {
-                    const chartContainer = document.getElementById('daily-chart').parentNode;
-                    chartContainer.innerHTML = `
-                        <div class="flex items-center justify-center h-full text-gray-500">
-                            暂无数据
-                        </div>
-                    `;
-                    return;
-                }
-                
-                // 如果已经有图表容器，确保它是canvas元素
-                const chartCanvas = document.getElementById('daily-chart');
-                if (!chartCanvas) {
-                    const chartContainer = document.querySelector('#daily-chart').parentNode;
-                    chartContainer.innerHTML = '<canvas id="daily-chart"></canvas>';
-                    return this.renderDailyChart(data, selectedMonth);
-                }
-                
-                // 创建图表
-                window.dailyChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: '工时（分钟）',
-                                data: hoursData,
-                                backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                                borderColor: 'rgba(59, 130, 246, 1)',
-                                borderWidth: 1,
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: '金额（元）',
-                                data: amountData,
-                                backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                                borderColor: 'rgba(16, 185, 129, 1)',
-                                borderWidth: 1,
-                                yAxisID: 'y1'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: '工时（分钟）',
-                                    font: {
-                                        size: 12
-                                    }
-                                },
-                                beginAtZero: true,
-                                ticks: {
-                                    font: {
-                                        size: 10
-                                    }
-                                }
-                            },
-                            y1: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: '金额（元）',
-                                    font: {
-                                        size: 12
-                                    }
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    drawOnChartArea: false
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 10
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    font: {
-                                        size: 10
-                                    },
-                                    // 只显示部分标签，避免拥挤
-                                    maxRotation: 0,
-                                    autoSkip: true,
-                                    maxTicksLimit: 10
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.dataset.label || '';
-                                        const value = context.raw || 0;
-                                        if (label.includes('工时')) {
-                                            return `${label}: ${value.toFixed(1)}`;
-                                        } else {
-                                            return `${label}: ¥${value.toFixed(2)}`;
-                                        }
-                                    }
-                                }
-                            },
-                            legend: {
-                                position: 'top',
-                                labels: {
-                                    font: {
-                                        size: 12
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            },
+
             
-            // 渲染型号工时占比图表
+            // 渲染型号工时文本描述
             renderModelChart(data, selectedMonth = null) {
-                const ctx = document.getElementById('model-chart').getContext('2d');
-                
-                // 销毁现有图表（如果存在）
-                if (window.modelChart) {
-                    window.modelChart.destroy();
-                }
-                
-                // 如果没有数据，不创建图表
-                if (data.length === 0) {
-                    return;
-                }
+                const statsContainer = document.getElementById('model-stats-text');
                 
                 // 获取所有工作记录条目用于按月份过滤
                 const allEntries = DataManager.getAllWorkEntries();
@@ -3069,85 +2979,220 @@
                 // 按型号分组计算工时
                 const modelGroups = {};
                 filteredEntries.forEach(entry => {
+                    // 获取型号信息，如果型号已被删除，则使用记录中保存的信息
                     const model = DataManager.getModelById(entry.modelId);
+                    const modelName = model ? model.name : `已删除型号 (${entry.modelId})`;
+                    const hoursPerUnit = model ? model.hours : entry.hoursPerUnit;
+                    
+                    // 使用型号ID作为分组键，即使型号已被删除
+                    if (!modelGroups[entry.modelId]) {
+                        modelGroups[entry.modelId] = {
+                            name: modelName,
+                            hoursPerUnit: hoursPerUnit,
+                            totalHours: 0,
+                            count: 0,
+                            entries: [],
+                            isDeleted: !model // 标记型号是否已被删除
+                        };
+                    }
+                    
+                    // 更新统计数据
+                    modelGroups[entry.modelId].totalHours += entry.count * hoursPerUnit;
+                    modelGroups[entry.modelId].count += entry.count;
+                    modelGroups[entry.modelId].entries.push(entry);
+                    
+                    // 如果型号信息已更新，同步更新名称和工时
                     if (model) {
-                        if (!modelGroups[model.id]) {
-                            modelGroups[model.id] = {
-                                name: model.name,
-                                totalHours: 0
-                            };
-                        }
-                        modelGroups[model.id].totalHours += entry.count * entry.hoursPerUnit;
+                        modelGroups[entry.modelId].name = model.name;
+                        modelGroups[entry.modelId].hoursPerUnit = model.hours;
+                        modelGroups[entry.modelId].isDeleted = false;
                     }
                 });
                 
                 // 准备数据
                 const modelData = Object.values(modelGroups);
-                const labels = modelData.map(item => item.name);
-                const values = modelData.map(item => item.totalHours);
                 
                 // 计算总工时
-                const totalHours = values.reduce((a, b) => a + b, 0);
+                const totalHours = modelData.reduce((sum, item) => sum + item.totalHours, 0);
                 
-                // 生成颜色
-                const colors = this.generateColors(data.length);
+                // 如果没有数据，显示提示信息
+                if (modelData.length === 0) {
+                    statsContainer.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            暂无数据
+                        </div>
+                    `;
+                    return;
+                }
                 
-                // 创建图表 - 改为柱状图
-                window.modelChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: '工时（分钟）',
-                            data: values,
-                            backgroundColor: colors,
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: '工时（分钟）'
-                                }
-                            },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: '型号'
-                                }
+                // 生成文本描述
+                let html = '';
+                
+                // 添加总工时信息
+                const hourlyRate = DataManager.getHourlyRate();
+                const totalAmount = (totalHours / 60) * hourlyRate;
+                html += `
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <div class="text-lg font-semibold mb-2">总体统计</div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <span class="text-gray-600">总工时：</span>
+                                <span class="font-medium text-primary">${totalHours.toFixed(1)} 分钟</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">总金额：</span>
+                                <span class="font-medium text-secondary">¥${totalAmount.toFixed(2)}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">型号数量：</span>
+                                <span class="font-medium">${modelData.length} 种</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 按工时降序排序
+                modelData.sort((a, b) => b.totalHours - a.totalHours);
+                
+                // 添加各型号详细信息
+                modelData.forEach((model, index) => {
+                    const percentage = totalHours > 0 ? (model.totalHours / totalHours * 100).toFixed(1) : 0;
+                    const amount = (model.totalHours / 60) * hourlyRate;
+                    
+                    // 计算该型号的工作天数
+                    const workDays = new Set();
+                    model.entries.forEach(entry => {
+                        workDays.add(entry.date);
+                    });
+                    
+                    // 为已删除的型号添加特殊样式
+                    const modelNameClass = model.isDeleted ? 'font-medium text-red-500' : 'font-medium';
+                    const modelBadge = model.isDeleted ? 
+                        `<span class="ml-2 text-xs px-1 py-0.5 bg-red-100 text-red-800 rounded">已删除</span>` : '';
+                    
+                    html += `
+                        <div class="mb-4 p-4 border rounded-lg hover:shadow-md transition-custom">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="${modelNameClass}">${index + 1}. ${model.name}${modelBadge}</div>
+                                <div class="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                    占比 ${percentage}%
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <span class="text-gray-600">总工时：</span>
+                                    <span class="font-medium text-primary">${model.totalHours.toFixed(1)} 分钟</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">总金额：</span>
+                                    <span class="font-medium text-secondary">¥${amount.toFixed(2)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">生产数量：</span>
+                                    <span class="font-medium">${model.count.toFixed(2)} 台</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">工作天数：</span>
+                                    <span class="font-medium">${workDays.size} 天</span>
+                                </div>
+                            </div>
+                    `;
+                    
+                    // 添加详细记录列表（最多显示5条）
+                    const sortedEntries = model.entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const displayEntries = sortedEntries.slice(0, 5);
+                    
+                    if (displayEntries.length > 0) {
+                        html += `
+                            <div class="mt-3">
+                                <div class="text-sm font-medium mb-2">详细记录：</div>
+                                <div class="text-xs text-gray-600 space-y-1">
+                        `;
+                        
+                        displayEntries.forEach(entry => {
+                            const date = new Date(entry.date);
+                            const month = date.getMonth() + 1;
+                            const day = date.getDate();
+                            const shortDate = `${month}/${day}`;
+                            
+                            // 获取产品编号信息，最多显示前50个字符
+                            let unitInfo = entry.units && entry.units.length > 0 
+                                ? entry.units.map(unit => unit.number).join(', ')
+                                : '无编号';
+                            
+                            if (unitInfo.length > 50) {
+                                unitInfo = unitInfo.substring(0, 50) + '...';
                             }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.dataset.label || '';
-                                        const value = context.raw || 0;
-                                        const percentage = totalHours > 0 ? Math.round((value / totalHours) * 100) : 0;
-                                        
-                                        // 计算金额
-                                        const hourlyRate = DataManager.getHourlyRate();
-                                        const amount = (value / 60) * hourlyRate;
-                                        
-                                        return [
-                                            `${label}: ${value.toFixed(1)}`,
-                                            `占比: ${percentage}%`,
-                                            `金额: ¥${amount.toFixed(2)}`
-                                        ];
-                                    }
+                            
+                            html += `
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="w-12">${shortDate}</span>
+                                    <span class="flex-1 mx-2 truncate text-left" title="${entry.units && entry.units.length > 0 ? entry.units.map(unit => unit.number).join(', ') : '无编号'}">${unitInfo}</span>
+                                    <span class="w-20 text-right">${(entry.count * entry.hoursPerUnit).toFixed(1)} 分钟</span>
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                        
+                        if (sortedEntries.length > 5) {
+                            html += `
+                                <div class="mt-2 text-xs text-gray-500 text-center cursor-pointer expand-records" data-model-id="${model.id}" data-index="${index}">
+                                    <i class="fa fa-plus-circle mr-1"></i>还有 ${sortedEntries.length - 5} 条记录未显示，点击展开
+                                </div>
+                                <div class="mt-2 hidden expanded-records" id="expanded-records-${model.id}-${index}">
+                                    <div class="text-xs text-gray-600 space-y-1 pt-2 border-t border-gray-200">
+                        `;
+                            
+                            // 添加剩余的记录
+                            const remainingEntries = sortedEntries.slice(5);
+                            remainingEntries.forEach(entry => {
+                                const date = new Date(entry.date);
+                                const month = date.getMonth() + 1;
+                                const day = date.getDate();
+                                const shortDate = `${month}/${day}`;
+                                
+                                // 获取产品编号信息，最多显示前50个字符
+                                let unitInfo = entry.units && entry.units.length > 0 
+                                    ? entry.units.map(unit => unit.number).join(', ')
+                                    : '无编号';
+                                
+                                if (unitInfo.length > 50) {
+                                    unitInfo = unitInfo.substring(0, 50) + '...';
                                 }
-                            },
-                            legend: {
-                                display: false
-                            }
+                                
+                                html += `
+                                    <div class="flex justify-between items-center py-1">
+                                        <span class="w-12">${shortDate}</span>
+                                        <span class="flex-1 mx-2 truncate text-left" title="${entry.units && entry.units.length > 0 ? entry.units.map(unit => unit.number).join(', ') : '无编号'}">${unitInfo}</span>
+                                        <span class="w-20 text-right">${(entry.count * entry.hoursPerUnit).toFixed(1)} 分钟</span>
+                                    </div>
+                                `;
+                            });
+                            
+                            html += `
+                                    </div>
+                                    <div class="mt-2 text-xs text-gray-500 text-center cursor-pointer collapse-records" data-model-id="${model.id}" data-index="${index}">
+                                        <i class="fa fa-minus-circle mr-1"></i>收起
+                                    </div>
+                                </div>
+                            `;
                         }
                     }
+                    
+                    html += `
+                        </div>
+                    `;
                 });
+                
+                // 更新容器内容
+                statsContainer.innerHTML = html;
+                
+                // 添加展开/收起记录的事件监听器
+                this.addExpandCollapseListeners();
             },
             
             // 生成指定数量的颜色
@@ -3175,6 +3220,40 @@
                 }
                 
                 return `${year}年${month}月${day}日`;
+            },
+            
+            // 添加展开/收起记录的事件监听器
+            addExpandCollapseListeners() {
+                // 为所有展开按钮添加事件监听器
+                document.querySelectorAll('.expand-records').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const modelId = e.currentTarget.dataset.modelId;
+                        const index = e.currentTarget.dataset.index;
+                        const expandedDiv = document.getElementById(`expanded-records-${modelId}-${index}`);
+                        
+                        // 显示展开的记录
+                        expandedDiv.classList.remove('hidden');
+                        // 隐藏展开按钮
+                        e.currentTarget.classList.add('hidden');
+                    });
+                });
+                
+                // 为所有收起按钮添加事件监听器
+                document.querySelectorAll('.collapse-records').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const modelId = e.currentTarget.dataset.modelId;
+                        const index = e.currentTarget.dataset.index;
+                        const expandedDiv = document.getElementById(`expanded-records-${modelId}-${index}`);
+                        const expandBtn = document.querySelector(`.expand-records[data-model-id="${modelId}"][data-index="${index}"]`);
+                        
+                        // 隐藏展开的记录
+                        expandedDiv.classList.add('hidden');
+                        // 显示展开按钮
+                        if (expandBtn) {
+                            expandBtn.classList.remove('hidden');
+                        }
+                    });
+                });
             },
             
             // 执行搜索
