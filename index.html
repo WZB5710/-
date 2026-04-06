@@ -199,6 +199,12 @@
                             <input type="date" id="work-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom">
                         </div>
                         <div>
+                            <label for="work-process" class="block text-sm font-medium text-gray-700 mb-2">工序</label>
+                            <input type="text" id="work-process" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请输入工序名称">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">选择型号</label>
                             <select id="model-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom">
                                 <option value="">-- 请选择型号 --</option>
@@ -304,10 +310,10 @@
                         <div class="flex justify-between items-center mb-4">
                             <h3 id="day-detail-title" class="text-xl font-bold text-dark"></h3>
                             <div class="flex space-x-2">
-                                <button id="edit-day-entries" class="text-primary hover:text-primary/80 transition-custom">
+                                <button id="edit-day-entries" class="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary/80 transition-custom w-10 h-10 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-pencil text-xl"></i>
                                 </button>
-                                <button id="close-day-detail" class="text-gray-500 hover:text-gray-700">
+                                <button id="close-day-detail" class="bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-800 transition-custom w-10 h-10 rounded-lg flex items-center justify-center">
                                     <i class="fa fa-times text-xl"></i>
                                 </button>
                             </div>
@@ -460,17 +466,17 @@
                     <div class="mt-4 space-y-2">
                         <div class="text-sm text-gray-500">
                             <span>平均每日工时</span>
-                            <span id="avg-daily-hours" class="ml-1 font-medium text-primary underline">695.7</span>
+                            <span id="avg-daily-hours" class="ml-1 font-medium text-primary underline" style="text-decoration: none;">695.7</span>
                             <span>分钟</span>
                         </div>
                         <div class="text-sm text-gray-500">
                             <span>本月剩余天数</span>
-                            <span id="days-left-in-month" class="ml-1 font-medium text-red-500 underline">19</span>
+                            <span id="days-left-in-month" class="ml-1 font-medium text-red-500 underline" style="text-decoration: none; color: rgba(67, 116, 240, 0.94);">1</span>
                             <span>天</span>
                         </div>
                         <div class="text-sm text-gray-500">
                             <span>今年已记录天数</span>
-                            <span id="days-recorded-this-year" class="ml-1 font-medium text-green-500 underline">55</span>
+                            <span id="days-recorded-this-year" class="ml-1 font-medium text-green-500 underline" style="text-decoration: none; color: rgb(16, 185, 129);">55</span>
                             <span>天</span>
                         </div>
                     </div>
@@ -481,7 +487,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-gray-700 text-sm font-semibold">预估收入</p>
-                            <h3 id="total-income" class="text-3xl font-bold mt-1 text-secondary">¥0.00</h3>
+                            <h3 id="total-income" class="text-3xl font-bold mt-1 text-secondary">¥5270.79</h3>
                         </div>
                         <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                             <i class="fa fa-money text-green-600 text-xl"></i>
@@ -533,6 +539,11 @@
                                 <input type="number" id="base-salary" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="例如：3000.00" required="">
                                 <p class="text-xs text-gray-500 mt-1">设置每月基础工资，将与工时工资相加计算总收入</p>
                             </div>
+                        </div>
+                        <div class="mt-4">
+                            <label for="default-work-process" class="block text-sm font-medium text-gray-700 mb-2">默认工序名称</label>
+                            <input type="text" id="default-work-process" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请输入默认工序名称">
+                            <p class="text-xs text-gray-500 mt-1">设置默认工序名称，将自动填充到工时记录中</p>
                         </div>
                         <div class="mt-4">
                             <button id="save-settings" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center">
@@ -618,7 +629,7 @@
                         </div>
                         <div class="bg-green-50 p-4 rounded-lg">
                             <div class="text-sm text-gray-600 mb-1">总金额</div>
-                            <div id="model-detail-total-amount" class="text-2xl font-bold text-secondary">¥0.00</div>
+                            <div id="model-detail-total-amount" class="text-2xl font-bold text-secondary">¥1390.08</div>
                         </div>
                         <div class="bg-purple-50 p-4 rounded-lg">
                             <div class="text-sm text-gray-600 mb-1">生产数量</div>
@@ -835,6 +846,18 @@
                 localStorage.setItem('workHourBaseSalary', salary.toString());
                 this.updateEventListeners();
                 return { success: true, message: '基础工资设置已保存' };
+            },
+            
+            // 获取默认工序设置
+            getDefaultWorkProcess() {
+                return localStorage.getItem('workHourDefaultWorkProcess') || '';
+            },
+            
+            // 保存默认工序设置
+            saveDefaultWorkProcess(process) {
+                localStorage.setItem('workHourDefaultWorkProcess', process);
+                this.updateEventListeners();
+                return { success: true, message: '默认工序设置已保存' };
             },
             
             // 获取按日期统计的数据
@@ -1177,6 +1200,11 @@
                 const baseSalary = DataManager.getBaseSalary();
                 document.getElementById('base-salary').value = baseSalary;
                 
+                // 加载默认工序设置
+                const defaultWorkProcess = DataManager.getDefaultWorkProcess();
+                document.getElementById('default-work-process').value = defaultWorkProcess;
+                document.getElementById('work-process').value = defaultWorkProcess;
+                
                 this.setupEventListeners();
                 this.renderAll();
                 
@@ -1336,6 +1364,61 @@
                         // 重新加载日期记录以显示更新后的数据
                         this.loadEntriesForDate(date);
                         this.updateSaveButtonState();
+                        
+                        // 复制保存的内容和日期到剪贴板
+                        const formattedDate = this.formatDate(date, true); // 使用简短格式，只包含月和日
+                        const workProcess = document.getElementById('work-process').value.trim();
+                        
+                        // 按照新格式构建复制文本
+                        let copyText = `${formattedDate}\t${workProcess}\n`;
+                        
+                        entriesToSave.forEach(entry => {
+                            // 所有编号用斜杠连接
+                            const allUnitsText = entry.units.map(unit => {
+                                if (unit.quantity !== 1) {
+                                    return `${unit.number}(${unit.quantity})`;
+                                }
+                                return unit.number;
+                            }).join('/');
+                            
+                            // 检查是否是纯文字型号（不包含数字）
+                            const isTextOnlyModel = !/\d/.test(entry.modelName);
+                            
+                            // 检查是否是纯文字工作内容
+                            const allTextDescriptions = entry.units.every(unit => 
+                                unit.number.match(/^([^0-9]+)\((\d+)\)$/)
+                            );
+                            
+                            if (isTextOnlyModel || allTextDescriptions) {
+                                // 如果是纯文字型号或纯文字工作内容，只显示工作内容
+                                copyText += `${allUnitsText}\n`;
+                            } else {
+                                // 否则显示型号+编号
+                                // 查找型号中的年份位置
+                                const yearMatch = entry.modelName.match(/(\d{2})$/);
+                                if (yearMatch) {
+                                    const year = yearMatch[1];
+                                    // 将年份插入到型号和编号之间
+                                    const modelWithoutYear = entry.modelName.replace(/\d{2}$/, '');
+                                    copyText += `${modelWithoutYear}${year}${allUnitsText}\n`;
+                                } else {
+                                    // 如果型号中没有年份，直接显示型号+编号
+                                    copyText += `${entry.modelName}${allUnitsText}\n`;
+                                }
+                            }
+                        });
+                        
+                        // 复制到剪贴板
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(copyText).then(() => {
+                                this.showNotification(true, '记录已保存并复制到剪贴板');
+                            }).catch(err => {
+                                console.error('Clipboard API 失败:', err);
+                                this.fallbackCopyText(copyText);
+                            });
+                        } else {
+                            this.fallbackCopyText(copyText);
+                        }
                     }
                 });
                 
@@ -1416,6 +1499,7 @@
             saveSettings() {
                 const hourlyRate = parseFloat(document.getElementById('hourly-rate').value);
                 const baseSalary = parseFloat(document.getElementById('base-salary').value);
+                const defaultWorkProcess = document.getElementById('default-work-process').value.trim();
                 
                 if (isNaN(hourlyRate) || hourlyRate < 0) {
                     this.showNotification(false, '请输入有效的工时单价');
@@ -1436,7 +1520,15 @@
                 
                 // 保存基础工资
                 const salaryResult = DataManager.saveBaseSalary(baseSalary);
-                this.showNotification(salaryResult.success, salaryResult.message);
+                if (!salaryResult.success) {
+                    this.showNotification(false, salaryResult.message);
+                    return;
+                }
+                
+                // 保存默认工序
+                DataManager.saveDefaultWorkProcess(defaultWorkProcess);
+                
+                this.showNotification(true, '所有设置已保存');
             },
             
             // 导出数据
@@ -1945,31 +2037,11 @@
                         
                         if (!modelName || !dataUnits) return;
                         
-                        // 解析编号
-                        const unitsArray = dataUnits.split('/');
-                        
-                        // 格式化每个编号
-                        const formattedUnits = unitsArray.map((unit) => {
-                            // 检查是否是文字描述类作业内容（格式为"工作内容（时间）"）
-                            const descMatch = unit.match(/^([^/]+)\((\d+(\.\d+)?)\)$/);
-                            if (descMatch) {
-                                // 如果是文字描述类作业内容，直接返回原格式
-                                return unit;
-                            }
-                            
-                            // 分离数量部分（如果有）
-                            const quantityMatch = unit.match(/(.*?)(\(\d+(\.\d+)?\))?$/);
-                            const numPart = quantityMatch[1];
-                            const quantityPart = quantityMatch[2] || '';
-                            
-                            return `${numPart}${quantityPart}`;
-                        }).join('/');
-                        
-                        // 将相同型号的条目合并
+                        // 直接使用原始的 dataUnits，保留所有括号内容
                         if (!modelEntries.has(modelName)) {
                             modelEntries.set(modelName, []);
                         }
-                        modelEntries.get(modelName).push(formattedUnits);
+                        modelEntries.get(modelName).push(dataUnits);
                     });
                     
                     // 构建最终的复制文本，每种型号单独一行
@@ -3509,7 +3581,7 @@
                 
                 // 更新统计卡片
                 document.getElementById('model-detail-total-hours').textContent = `${modelData.totalHours.toFixed(1)} 分钟`;
-                document.getElementById('model-detail-total-amount').textContent = `¥${totalAmount.toFixed(2)}`;
+                document.getElementById('model-detail-total-amount').textContent = `${totalAmount.toFixed(2)}元`;
                 document.getElementById('model-detail-total-count').textContent = `${modelData.count.toFixed(2)} 台`;
                 document.getElementById('model-detail-work-days').textContent = `${workDays.size} 天`;
                 
