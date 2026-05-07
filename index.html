@@ -84,6 +84,95 @@
             .edit-mode-input {
                 @apply border border-gray-300 rounded px-2 py-1 w-full;
             }
+            /* 响应式表格样式 */
+            @media (max-width: 640px) {
+                .responsive-table {
+                    display: block;
+                    width: 100%;
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                    -ms-overflow-style: -ms-autohiding-scrollbar;
+                }
+                .responsive-table table {
+                    min-width: 640px;
+                }
+                .responsive-table th,
+                .responsive-table td {
+                    padding: 0.5rem;
+                    font-size: 0.875rem;
+                }
+                .responsive-table .text-lg {
+                    font-size: 1rem;
+                }
+                .responsive-table .text-xl {
+                    font-size: 1.125rem;
+                }
+                .responsive-table .text-2xl {
+                    font-size: 1.25rem;
+                }
+                .responsive-table .text-3xl {
+                    font-size: 1.5rem;
+                }
+                /* 移动端间距优化 */
+                .mobile-p-2 {
+                    padding: 0.5rem;
+                }
+                .mobile-p-4 {
+                    padding: 1rem;
+                }
+                .mobile-mb-4 {
+                    margin-bottom: 1rem;
+                }
+                .mobile-mt-4 {
+                    margin-top: 1rem;
+                }
+                /* 移动端按钮样式 */
+                .mobile-btn {
+                    padding: 0.5rem 1rem;
+                    font-size: 0.875rem;
+                }
+                /* 移动端卡片样式 */
+                .mobile-card {
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                }
+                /* 移动端输入框样式 */
+                .mobile-input {
+                    padding: 0.5rem;
+                    font-size: 0.875rem;
+                }
+                /* 移动端网格布局 */
+                .mobile-grid {
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+            }
+            .clipboard-btn {
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .entry-item:hover .clipboard-btn {
+                opacity: 1;
+            }
+            .calendar-hours {
+                font-size: 0.7rem;
+                color: #64748b;
+                margin-top: 2px;
+            }
+            .calendar-amount {
+                font-size: 0.65rem;
+                color: #10b981;
+                margin-top: 1px;
+            }
+            .calendar-hours-today {
+                color: rgba(255, 255, 255, 0.8);
+            }
+            .calendar-amount-today {
+                color: rgba(255, 255, 255, 0.9);
+            }
+            .edit-mode-input {
+                @apply border border-gray-300 rounded px-2 py-1 w-full;
+            }
         }
     </style>
 </head>
@@ -171,7 +260,7 @@
     <main class="container mx-auto px-4 pt-24 pb-16">
         <!-- 工时录入面板 -->
         <section id="input-panel" class="panel active">
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card">
                 <h2 class="text-2xl font-bold mb-6 text-dark flex items-center">
                     <i class="fa fa-keyboard-o text-primary mr-3"></i>工时录入
                 </h2>
@@ -260,7 +349,7 @@
 
         <!-- 工作日历面板 -->
         <section id="calendar-panel" class="panel hidden">
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card">
                 <h2 class="text-2xl font-bold mb-6 text-dark flex items-center">
                     <i class="fa fa-calendar text-primary mr-3"></i>工作日历
                 </h2>
@@ -383,7 +472,7 @@
 
         <!-- 型号管理面板 -->
         <section id="models-panel" class="panel hidden">
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card">
                 <h2 class="text-2xl font-bold mb-6 text-dark flex items-center">
                     <i class="fa fa-cubes text-primary mr-3"></i>型号管理
                 </h2>
@@ -396,19 +485,19 @@
                 
                 <div>
                     <h3 class="text-lg font-semibold mb-4 text-gray-700">已设置的工件型号</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white">
+                    <div class="overflow-x-auto responsive-table">
+                        <table class="min-w-full bg-white text-sm">
                             <thead>
                                 <tr class="bg-gray-100 text-left">
-                                    <th class="py-3 px-4 font-semibold text-gray-700">型号名称</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">工时（分钟/台）</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">操作</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">型号名称</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">工时（分钟/台）</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="model-list">
                                 <!-- 型号数据将通过JavaScript动态添加 -->
                                 <tr class="text-center text-gray-500">
-                                    <td colspan="3" class="py-8">暂无型号数据，请添加</td>
+                                    <td colspan="3" class="py-4">暂无型号数据，请添加</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -418,7 +507,7 @@
         </section>
 
         <!-- 统计分析面板 -->
-        <section id="stats-panel" class="panel hidden">
+        <section id="stats-panel" class="panel hidden mobile-p-4">
             <!-- 月份选择 -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-dark flex items-center">
@@ -434,7 +523,7 @@
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8 mobile-grid">
                 <!-- 总工时卡片 -->
                 <div class="bg-white rounded-lg shadow-lg p-6 card-shadow">
                     <div class="flex items-center justify-between">
@@ -543,7 +632,7 @@
 
         <!-- 设置面板 -->
         <section id="settings-panel" class="panel hidden">
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card">
                 <h2 class="text-2xl font-bold mb-6 text-dark flex items-center">
                     <i class="fa fa-cog text-primary mr-3"></i>系统设置
                 </h2>
@@ -711,21 +800,21 @@
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-lg font-semibold text-gray-700">月度明细</h4>
-                        <button id="toggle-yearly-edit-mode" class="bg-accent hover:bg-accent/90 text-white font-medium py-1 px-4 rounded-lg transition-custom text-sm flex items-center">
+                        <button id="toggle-yearly-edit-mode" class="bg-accent hover:bg-accent/90 text-white font-medium py-1 px-4 rounded-lg transition-custom text-sm flex items-center mobile-btn">
                             <i class="fa fa-pencil mr-2"></i>编辑数据
                         </button>
                     </div>
                     
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white border border-gray-200">
+                    <div class="overflow-x-auto responsive-table">
+                        <table class="min-w-full bg-white border border-gray-200 text-sm">
                             <thead>
                                 <tr class="bg-gray-100 text-left">
-                                    <th class="py-3 px-4 font-semibold text-gray-700">月份</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">工时(分钟)</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">工时工资</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">基础工资</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">月收入</th>
-                                    <th class="py-3 px-4 font-semibold text-gray-700">记录天数</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">月份</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">工时(分钟)</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">工时工资</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">基础工资</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">月收入</th>
+                                    <th class="py-2 px-3 font-semibold text-gray-700">记录天数</th>
                                 </tr>
                             </thead>
                             <tbody id="yearly-stats-table-body">
@@ -3484,20 +3573,20 @@
                     const rowClass = isCurrentMonth ? 'bg-blue-50' : '';
                     
                     row.innerHTML = `
-                        <td class="py-3 px-4 font-medium ${rowClass}">${monthName}</td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 font-medium ${rowClass}">${monthName}</td>
+                        <td class="py-2 px-3 ${rowClass}">
                             <span class="yearly-hours" data-month="${monthData.month}">${monthData.hours.toFixed(1)}</span>
                         </td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 ${rowClass}">
                             <span class="yearly-hourly-income" data-month="${monthData.month}">¥${monthData.hourlyIncome.toFixed(2)}</span>
                         </td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 ${rowClass}">
                             <span class="yearly-base-salary" data-month="${monthData.month}">¥${monthData.baseSalary.toFixed(2)}</span>
                         </td>
-                        <td class="py-3 px-4 font-medium text-secondary ${rowClass}">
+                        <td class="py-2 px-3 font-medium text-secondary ${rowClass}">
                             <span class="yearly-total-income" data-month="${monthData.month}">¥${monthData.totalIncome.toFixed(2)}</span>
                         </td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 ${rowClass}">
                             <span class="yearly-work-days" data-month="${monthData.month}">${monthData.workDays}</span>
                         </td>
                     `;
@@ -3566,20 +3655,20 @@
                     const rowClass = isCurrentMonth ? 'bg-blue-50' : '';
                     
                     row.innerHTML = `
-                        <td class="py-3 px-4 font-medium ${rowClass}">${monthName}</td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 font-medium ${rowClass}">${monthName}</td>
+                        <td class="py-2 px-3 ${rowClass}">
                             <input type="number" class="yearly-edit-hours edit-mode-input" data-month="${monthData.month}" value="${monthData.hours.toFixed(1)}" step="0.1" min="0">
                         </td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 ${rowClass}">
                             <span class="yearly-edit-hourly-income" data-month="${monthData.month}">¥${monthData.hourlyIncome.toFixed(2)}</span>
                         </td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 ${rowClass}">
                             <input type="number" class="yearly-edit-base-salary edit-mode-input" data-month="${monthData.month}" value="${monthData.baseSalary.toFixed(2)}" step="0.01" min="0">
                         </td>
-                        <td class="py-3 px-4 font-medium text-secondary ${rowClass}">
-                            <span class="yearly-edit-total-income" data-month="${monthData.month}">¥${monthData.totalIncome.toFixed(2)}</span>
+                        <td class="py-2 px-3 font-medium text-secondary ${rowClass}">
+                            <input type="number" class="yearly-edit-total-income edit-mode-input" data-month="${monthData.month}" value="${monthData.totalIncome.toFixed(2)}" step="0.01" min="0">
                         </td>
-                        <td class="py-3 px-4 ${rowClass}">
+                        <td class="py-2 px-3 ${rowClass}">
                             <input type="number" class="yearly-edit-work-days edit-mode-input" data-month="${monthData.month}" value="${monthData.workDays}" step="1" min="0">
                         </td>
                     `;
@@ -3588,13 +3677,7 @@
                 });
                 
                 // 添加输入事件监听器
-                document.querySelectorAll('.yearly-edit-hours').forEach(input => {
-                    input.addEventListener('input', (e) => {
-                        this.updateYearlyEditCalculations(e.target.dataset.month);
-                    });
-                });
-                
-                document.querySelectorAll('.yearly-edit-base-salary').forEach(input => {
+                document.querySelectorAll('.yearly-edit-hours, .yearly-edit-base-salary, .yearly-edit-total-income').forEach(input => {
                     input.addEventListener('input', (e) => {
                         this.updateYearlyEditCalculations(e.target.dataset.month);
                     });
@@ -3612,17 +3695,16 @@
                 
                 const hoursInput = document.querySelector(`.yearly-edit-hours[data-month="${month}"]`);
                 const baseSalaryInput = document.querySelector(`.yearly-edit-base-salary[data-month="${month}"]`);
+                const totalIncomeInput = document.querySelector(`.yearly-edit-total-income[data-month="${month}"]`);
                 const hourlyIncomeElement = document.querySelector(`.yearly-edit-hourly-income[data-month="${month}"]`);
-                const totalIncomeElement = document.querySelector(`.yearly-edit-total-income[data-month="${month}"]`);
                 
-                if (hoursInput && baseSalaryInput && hourlyIncomeElement && totalIncomeElement) {
+                if (hoursInput && baseSalaryInput && totalIncomeInput && hourlyIncomeElement) {
                     const hours = parseFloat(hoursInput.value) || 0;
                     const baseSalary = parseFloat(baseSalaryInput.value) || 0;
-                    const hourlyIncome = (hours / 60) * hourlyRate;
-                    const totalIncome = hourlyIncome + baseSalary;
+                    const totalIncome = parseFloat(totalIncomeInput.value) || 0;
+                    const hourlyIncome = totalIncome - baseSalary;
                     
                     hourlyIncomeElement.textContent = `¥${hourlyIncome.toFixed(2)}`;
-                    totalIncomeElement.textContent = `¥${totalIncome.toFixed(2)}`;
                     
                     // 更新编辑数据
                     if (this.editedYearlyData && this.editedYearlyData[monthIndex]) {
