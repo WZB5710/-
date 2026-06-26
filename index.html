@@ -220,7 +220,117 @@ p,span,div{
 }
 </style>
 
-<link rel="stylesheet" href="/Static/css/Global.css"/><link rel="stylesheet" href="/Web/css/Global.css"/><link rel="stylesheet" href="/Web/css/SoruxGPT.css"/></head><body class="bg-gray-50 font-sans text-gray-800 min-h-screen antialiased"><header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50 transition-custom"><div class="container mx-auto px-4 py-3 flex justify-between items-center"><div class="flex items-center space-x-2"><i class="fa fa-clock-o text-primary text-2xl"></i><h1 class="text-xl font-bold text-dark">智能工时记录系统</h1></div><div class="hidden md:flex items-center space-x-4"><div class="relative"><input type="text" id="search-input" placeholder="搜索型号、编号..." class="pl-10 pr-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-custom text-sm"><i class="fa fa-search absolute left-3 top-2 text-gray-400"></i></div><button id="search-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-1 px-4 rounded-lg transition-custom text-sm flex items-center"><i class="fa fa-search mr-1"></i> 搜索
+<link rel="stylesheet" href="/Static/css/Global.css"/><link rel="stylesheet" href="/Web/css/Global.css"/><link rel="stylesheet" href="/Web/css/SoruxGPT.css"/>
+<style id="calendar-popover-motion-polish">
+/* 日历日期点击反馈 */
+#calendar-grid > div.calendar-day{
+  position:relative;
+  overflow:hidden;
+  transform:translateZ(0);
+  transition:transform .18s cubic-bezier(.2,.8,.2,1),
+             box-shadow .22s ease,
+             border-color .22s ease,
+             background-color .22s ease !important;
+}
+#calendar-grid > div.calendar-day:hover{
+  transform:translateY(-2px) scale(1.02);
+  border-color:rgba(37,99,235,.35) !important;
+  box-shadow:0 14px 28px -20px rgba(15,23,42,.45) !important;
+}
+#calendar-grid > div.calendar-day:active{
+  transform:translateY(0) scale(.96) !important;
+}
+#calendar-grid > div.calendar-day.calendar-day-selected{
+  border-color:rgba(37,99,235,.58) !important;
+  background:linear-gradient(180deg,rgba(239,246,255,.96),#fff) !important;
+  box-shadow:0 12px 26px -18px rgba(37,99,235,.55) !important;
+}
+#calendar-grid > div.calendar-day.calendar-day-selected::before{
+  content:'';
+  position:absolute;
+  inset:5px;
+  border-radius:10px;
+  border:1px solid rgba(37,99,235,.16);
+  pointer-events:none;
+}
+
+/* 日期详情弹层：收放动画 + 悬浮玻璃感 */
+#day-detail-modal{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  background:rgba(15,23,42,0) !important;
+  backdrop-filter:blur(0px);
+  transition:opacity .24s ease, visibility .24s ease, background-color .24s ease, backdrop-filter .24s ease;
+}
+#day-detail-modal.calendar-popover-open{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  background:rgba(15,23,42,.42) !important;
+  backdrop-filter:blur(8px);
+}
+#day-detail-content{
+  border:1px solid rgba(255,255,255,.78) !important;
+  border-radius:22px !important;
+  background:rgba(255,255,255,.96) !important;
+  box-shadow:0 32px 90px -28px rgba(15,23,42,.55),
+             0 18px 45px -36px rgba(37,99,235,.45) !important;
+  transform:translateY(22px) scale(.9);
+  opacity:0;
+  transition:transform .36s cubic-bezier(.18,1.18,.25,1), opacity .22s ease, box-shadow .28s ease !important;
+  will-change:transform,opacity;
+}
+#day-detail-modal.calendar-popover-open #day-detail-content{
+  transform:translateY(0) scale(1);
+  opacity:1;
+}
+#day-detail-content:hover{
+  box-shadow:0 38px 105px -30px rgba(15,23,42,.62),
+             0 24px 55px -34px rgba(37,99,235,.50) !important;
+}
+#day-detail-content .entry-item{
+  border-color:rgba(226,232,240,.92) !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.88) !important;
+  box-shadow:0 10px 26px -22px rgba(15,23,42,.45) !important;
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+#day-detail-content .entry-item:hover{
+  transform:translateY(-2px);
+  border-color:rgba(37,99,235,.28) !important;
+  box-shadow:0 18px 36px -26px rgba(15,23,42,.55) !important;
+}
+@media (max-width:640px){
+  #day-detail-modal{
+    align-items:flex-end !important;
+  }
+  #day-detail-content{
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 !important;
+    max-height:86vh !important;
+    border-radius:24px 24px 0 0 !important;
+    transform:translateY(100%) scale(.98);
+  }
+  #day-detail-modal.calendar-popover-open #day-detail-content{
+    transform:translateY(0) scale(1);
+  }
+  #day-detail-content > .p-6{
+    padding:1rem !important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  #calendar-grid > div.calendar-day,
+  #day-detail-modal,
+  #day-detail-content,
+  #day-detail-content .entry-item{
+    transition:none !important;
+  }
+}
+</style>
+
+<link rel="stylesheet" href="/Static/css/Global.css"/><link rel="stylesheet" href="/Web/css/Global.css"/><link rel="stylesheet" href="/Web/css/SoruxGPT.css"/><link rel="stylesheet" href="/Static/css/Global.css"/><link rel="stylesheet" href="/Web/css/Global.css"/><link rel="stylesheet" href="/Web/css/SoruxGPT.css"/></head><body class="bg-gray-50 font-sans text-gray-800 min-h-screen antialiased"><header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50 transition-custom"><div class="container mx-auto px-4 py-3 flex justify-between items-center"><div class="flex items-center space-x-2"><i class="fa fa-clock-o text-primary text-2xl"></i><h1 class="text-xl font-bold text-dark">智能工时记录系统</h1></div><div class="hidden md:flex items-center space-x-4"><div class="relative"><input type="text" id="search-input" placeholder="搜索型号、编号..." class="pl-10 pr-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-custom text-sm"><i class="fa fa-search absolute left-3 top-2 text-gray-400"></i></div><button id="search-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-1 px-4 rounded-lg transition-custom text-sm flex items-center"><i class="fa fa-search mr-1"></i> 搜索
                 </button></div><nav class="hidden md:flex space-x-6"><button id="nav-input" class="nav-btn text-primary font-medium border-b-2 border-primary py-1">工时录入</button><button id="nav-calendar" class="nav-btn text-neutral hover:text-primary font-medium py-1">工作日历</button><button id="nav-models" class="nav-btn text-neutral hover:text-primary font-medium py-1">型号管理</button><button id="nav-stats" class="nav-btn text-neutral hover:text-primary font-medium py-1">统计分析</button><button id="nav-settings" class="nav-btn text-neutral hover:text-primary font-medium py-1">设置</button></nav><div class="flex items-center space-x-4 md:hidden"><button id="mobile-search-btn" class="text-gray-700 p-2"><i class="fa fa-search text-3xl"></i></button><button id="mobile-menu-btn" class="text-gray-700 p-2"><i class="fa fa-bars text-3xl"></i></button></div></div><div id="mobile-menu" class="hidden md:hidden bg-white border-t"><div class="container mx-auto px-4 py-2 flex flex-col space-y-3"><button id="mobile-nav-input" class="mobile-nav-btn text-left text-primary font-medium py-2">工时录入</button><button id="mobile-nav-calendar" class="mobile-nav-btn text-left text-neutral py-2">工作日历</button><button id="mobile-nav-models" class="mobile-nav-btn text-left text-neutral py-2">型号管理</button><button id="mobile-nav-stats" class="mobile-nav-btn text-left text-neutral py-2">统计分析</button><button id="mobile-nav-settings" class="mobile-nav-btn text-left text-neutral py-2">设置</button></div></div><div id="mobile-search-panel" class="hidden md:hidden fixed inset-0 bg-white z-50 pt-20"><div class="container mx-auto px-4 py-4"><div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold text-dark">搜索</h2><button id="close-mobile-search" class="text-gray-700"><i class="fa fa-times text-xl"></i></button></div><div class="relative mb-4"><input type="text" id="mobile-search-input" placeholder="搜索型号、编号..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-custom"><i class="fa fa-search absolute left-3 top-3 text-gray-400"></i></div><button id="mobile-search-submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-custom flex items-center justify-center"><i class="fa fa-search mr-2"></i> 搜索
                 </button><div id="mobile-search-results-container" class="mt-6 hidden"><div class="flex justify-between items-center mb-3"><h3 class="text-lg font-semibold text-gray-700 flex items-center"><i class="fa fa-search text-primary mr-2"></i>搜索结果
                             <span id="mobile-search-keyword" class="ml-2 text-sm font-normal text-gray-500"></span></h3><button id="mobile-clear-search" class="text-gray-500 hover:text-gray-700 transition-custom"><i class="fa fa-times"></i> 清除
@@ -242,11 +352,11 @@ p,span,div{
                                     </button></div></div></div></div></div></div></section><section id="models-panel" class="panel hidden"><div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card"><h2 class="text-2xl font-bold mb-6 text-dark flex items-center"><i class="fa fa-cubes text-primary mr-3"></i>型号管理
                 </h2><div class="mb-8"><button id="add-model-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center"><i class="fa fa-plus mr-2"></i>添加新工件型号
                     </button></div><div><h3 class="text-lg font-semibold mb-4 text-gray-700">已设置的工件型号</h3><div class="overflow-x-auto responsive-table"><table class="min-w-full bg-white text-sm"><thead><tr class="bg-gray-100 text-left"><th class="py-2 px-3 font-semibold text-gray-700">型号名称</th><th class="py-2 px-3 font-semibold text-gray-700">工时（分钟/台）</th><th class="py-2 px-3 font-semibold text-gray-700">操作</th></tr></thead><tbody id="model-list"><tr class="text-center text-gray-500"><td colspan="3" class="py-4">暂无型号数据，请添加</td></tr></tbody></table></div></div></div></section><section id="stats-panel" class="panel hidden mobile-p-4 stats-integrated-layout"><div class="stats-toolbar flex flex-col md:flex-row md:justify-between md:items-center mb-6"><h2 class="text-2xl font-bold text-dark flex items-center"><i class="fa fa-bar-chart text-primary mr-3"></i>统计分析
-                </h2><div class="stats-month-control flex items-center space-x-4"><div class="w-full"><label for="stats-month-select" class="block text-sm font-medium text-gray-700 mb-1">选择月份</label><select id="stats-month-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"></select></div></div></div><div class="stats-summary-grid grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mobile-grid"><div id="stats-income-card" class="stats-action-card bg-white rounded-lg shadow-lg p-6 card-shadow cursor-pointer" role="button" tabindex="0" title="点击查看年度总结"><div class="flex items-center justify-between"><div><p class="stats-card-label text-gray-700 text-sm font-semibold">预估收入</p><h3 id="total-income" class="stats-card-value text-3xl font-bold mt-1 text-secondary">¥5270.79</h3></div><div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center"><i class="fa fa-money text-green-600 text-xl"></i></div></div><div class="stats-card-subtext mt-4"><div class="text-sm text-gray-500"><span>收入构成</span><span id="current-month-income" class="ml-1 font-medium text-secondary">¥5270.79</span></div><div id="income-breakdown" class="mt-1 text-xs text-gray-400">
-                            (工时工资<span id="hourly-income" class="font-medium text-primary">¥2840.79</span>+基础工资<span id="base-income" class="font-medium text-green-500">¥2430.00</span>)
-                        </div></div><div class="integrated-yearly-preview mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3"><div><p class="text-xs text-gray-400">年度总工时</p><p id="yearly-total-hours-preview" class="font-bold text-primary">0 分钟</p></div><div><p class="text-xs text-gray-400">年度总收入</p><p id="yearly-total-income-preview" class="font-bold text-secondary">¥0.00</p></div></div><div class="stats-card-hint mt-3 text-xs text-gray-400 flex items-center justify-between"><span>点击查看年度总结</span><i class="fa fa-angle-right"></i></div></div><div id="stats-hours-card" class="stats-action-card bg-white rounded-lg shadow-lg p-6 card-shadow cursor-pointer" role="button" tabindex="0" title="点击展开工时占比"><div class="flex items-center justify-between"><div><p class="stats-card-label text-gray-700 text-sm font-semibold">当月工时</p><h3 id="total-hours" class="stats-card-value text-3xl font-bold mt-1">0 分钟</h3></div><div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"><i class="fa fa-clock-o text-primary text-xl"></i></div></div><div class="stats-card-subtext mt-4 text-sm text-gray-500 flex items-center justify-between"><div><span>相比上月</span><span id="total-hours-change" class="ml-1 text-green-500"><i class="fa fa-arrow-up"></i> 0%</span></div><span id="work-ratio-toggle-text" class="text-xs text-primary font-medium">展开占比</span></div><div id="work-ratio-panel" class="integrated-ratio-panel hidden mt-4 pt-4 border-t border-gray-100"><h3 class="stats-section-title text-sm font-semibold mb-3 text-gray-700"><span>当月各型号工时占比</span></h3><div class="grid grid-cols-1 gap-2" id="model-stats-cards"><div class="text-center text-gray-500 py-6">
+                </h2><div class="stats-month-control flex items-center space-x-4"><div class="w-full"><label for="stats-month-select" class="block text-sm font-medium text-gray-700 mb-1">选择月份</label><select id="stats-month-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom"></select></div></div></div><div class="stats-summary-grid grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mobile-grid"><div id="stats-hours-card" class="stats-action-card bg-white rounded-lg shadow-lg p-6 card-shadow cursor-pointer" role="button" tabindex="0" title="点击展开工时占比"><div class="flex items-center justify-between"><div><p class="stats-card-label text-gray-700 text-sm font-semibold">当月工时</p><h3 id="total-hours" class="stats-card-value text-3xl font-bold mt-1">0 分钟</h3></div><div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"><i class="fa fa-clock-o text-primary text-xl"></i></div></div><div class="stats-card-subtext mt-4 text-sm text-gray-500 flex items-center justify-between"><div><span>相比上月</span><span id="total-hours-change" class="ml-1 text-green-500"><i class="fa fa-arrow-up"></i> 0%</span></div><span id="work-ratio-toggle-text" class="text-xs text-primary font-medium">展开占比</span></div><div id="work-ratio-panel" class="integrated-ratio-panel hidden mt-4 pt-4 border-t border-gray-100"><h3 class="stats-section-title text-sm font-semibold mb-3 text-gray-700"><span>当月各型号工时占比</span></h3><div class="grid grid-cols-1 gap-2" id="model-stats-cards"><div class="text-center text-gray-500 py-6">
                                 暂无数据
-                            </div></div></div></div><div id="stats-days-card" class="stats-action-card bg-white rounded-lg shadow-lg p-6 card-shadow cursor-pointer" role="button" tabindex="0" title="点击展开记录天数分析"><div class="flex items-center justify-between"><div><p class="stats-card-label text-gray-700 text-sm font-semibold">记录天数</p><h3 id="recorded-days" class="stats-card-value text-3xl font-bold mt-1 text-gray-800">0</h3></div><div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center"><i class="fa fa-calendar-check-o text-secondary text-xl"></i></div></div><div class="stats-card-subtext mt-4 space-y-2"><div class="text-sm text-gray-500"><span>平均每日工时</span><span id="avg-daily-hours" class="ml-1 font-medium text-primary" style="text-decoration:none;">0</span><span>分钟</span></div><div class="text-sm text-gray-500"><span>休息天数</span><span id="rest-days-inline" class="ml-1 font-medium text-orange-500" style="text-decoration:none;">0</span><span>天</span></div><div class="text-sm text-gray-500 flex items-center justify-between"><span>本月剩余天数 <b id="days-left-in-month" class="ml-1 font-medium text-primary" style="text-decoration:none;">0</b> 天</span><span id="days-analysis-toggle-text" class="text-xs text-primary font-medium">展开分析</span></div></div><div id="days-analysis-panel" class="hidden mt-4 pt-4 border-t border-gray-100"><div class="grid grid-cols-2 gap-2 text-sm"><div class="days-mini-stat"><span>已休息</span><strong id="days-rested-count">0天</strong></div><div class="days-mini-stat"><span>本月天数</span><strong id="days-in-selected-month">0天</strong></div><div class="days-mini-stat"><span>日均工时</span><strong id="days-avg-hours-detail">0分钟</strong></div><div class="days-mini-stat"><span>推算全月</span><strong id="days-projected-month-hours">0分钟</strong></div></div><p id="days-projection-note" class="mt-3 text-xs text-gray-500 leading-relaxed">点击查看记录天数分析。</p></div></div></div></section><section id="settings-panel" class="panel hidden"><div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card"><h2 class="text-2xl font-bold mb-6 text-dark flex items-center"><i class="fa fa-cog text-primary mr-3"></i>系统设置
+                            </div></div></div></div><div id="stats-income-card" class="stats-action-card bg-white rounded-lg shadow-lg p-6 card-shadow cursor-pointer" role="button" tabindex="0" title="点击查看年度总结"><div class="flex items-center justify-between"><div><p class="stats-card-label text-gray-700 text-sm font-semibold">预估收入</p><h3 id="total-income" class="stats-card-value text-3xl font-bold mt-1 text-secondary">¥5270.79</h3></div><div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center"><i class="fa fa-money text-green-600 text-xl"></i></div></div><div class="stats-card-subtext mt-4"><div class="text-sm text-gray-500"><span>收入构成</span><span id="current-month-income" class="ml-1 font-medium text-secondary">¥5270.79</span></div><div id="income-breakdown" class="mt-1 text-xs text-gray-400">
+                            (工时工资<span id="hourly-income" class="font-medium text-primary">¥2840.79</span>+基础工资<span id="base-income" class="font-medium text-green-500">¥2430.00</span>)
+                        </div></div><div class="integrated-yearly-preview mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3"><div><p class="text-xs text-gray-400">年度总工时</p><p id="yearly-total-hours-preview" class="font-bold text-primary">0 分钟</p></div><div><p class="text-xs text-gray-400">年度总收入</p><p id="yearly-total-income-preview" class="font-bold text-secondary">¥0.00</p></div></div><div class="stats-card-hint mt-3 text-xs text-gray-400 flex items-center justify-between"><span>点击查看年度总结</span><i class="fa fa-angle-right"></i></div></div><div id="stats-days-card" class="stats-action-card bg-white rounded-lg shadow-lg p-6 card-shadow cursor-pointer" role="button" tabindex="0" title="点击展开记录天数分析"><div class="flex items-center justify-between"><div><p class="stats-card-label text-gray-700 text-sm font-semibold">记录天数</p><h3 id="recorded-days" class="stats-card-value text-3xl font-bold mt-1 text-gray-800">0</h3></div><div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center"><i class="fa fa-calendar-check-o text-secondary text-xl"></i></div></div><div class="stats-card-subtext mt-4 space-y-2"><div class="text-sm text-gray-500"><span>平均每日工时</span><span id="avg-daily-hours" class="ml-1 font-medium text-primary" style="text-decoration:none;">0</span><span>分钟</span></div><div class="text-sm text-gray-500"><span>休息天数</span><span id="rest-days-inline" class="ml-1 font-medium text-orange-500" style="text-decoration:none;">0</span><span>天</span></div><div class="text-sm text-gray-500 flex items-center justify-between"><span>本月剩余天数 <b id="days-left-in-month" class="ml-1 font-medium text-primary" style="text-decoration:none;">0</b> 天</span><span id="days-analysis-toggle-text" class="text-xs text-primary font-medium">展开分析</span></div></div><div id="days-analysis-panel" class="hidden mt-4 pt-4 border-t border-gray-100"><div class="grid grid-cols-2 gap-2 text-sm"><div class="days-mini-stat"><span>已休息</span><strong id="days-rested-count">0天</strong></div><div class="days-mini-stat"><span>本月天数</span><strong id="days-in-selected-month">0天</strong></div><div class="days-mini-stat"><span>日均工时</span><strong id="days-avg-hours-detail">0分钟</strong></div><div class="days-mini-stat"><span>推算全月</span><strong id="days-projected-month-hours">0分钟</strong></div></div><p id="days-projection-note" class="mt-3 text-xs text-gray-500 leading-relaxed">点击查看记录天数分析。</p></div></div></div></section><section id="settings-panel" class="panel hidden"><div class="bg-white rounded-lg shadow-lg p-6 mb-8 mobile-card"><h2 class="text-2xl font-bold mb-6 text-dark flex items-center"><i class="fa fa-cog text-primary mr-3"></i>系统设置
                 </h2><div class="space-y-6"><div><h3 class="text-lg font-semibold mb-4 text-gray-700">工时单价设置</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="hourly-rate" class="block text-sm font-medium text-gray-700 mb-2">工时单价（元/小时）</label><input type="number" id="hourly-rate" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="例如：50.00" required=""><p class="text-xs text-gray-500 mt-1">设置每小时的工时单价，系统将据此计算收入金额</p></div><div><label for="base-salary" class="block text-sm font-medium text-gray-700 mb-2">基础工资（元/月）</label><input type="number" id="base-salary" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="例如：3000.00" required=""><p class="text-xs text-gray-500 mt-1">设置每月基础工资，将与工时工资相加计算总收入</p></div></div><div class="mt-4"><label for="default-work-process" class="block text-sm font-medium text-gray-700 mb-2">默认工序名称</label><input type="text" id="default-work-process" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请输入默认工序名称"><p class="text-xs text-gray-500 mt-1">设置默认工序名称，将自动填充到工时记录中</p></div><div class="mt-4"><button id="save-settings" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center"><i class="fa fa-save mr-2"></i>保存设置
                             </button></div></div><div class="border-t pt-6"><h3 class="text-lg font-semibold mb-4 text-gray-700">数据管理</h3><div class="space-y-4"><button id="export-data" class="bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center"><i class="fa fa-download mr-2"></i>导出数据
                             </button><button id="import-data" class="bg-accent hover:bg-accent/90 text-white font-medium py-2 px-6 rounded-lg transition-custom flex items-center"><i class="fa fa-upload mr-2"></i>导入数据
@@ -2015,12 +2125,12 @@ p,span,div{
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const hours = datesWithData[day]?.hours || 0;
                     const amount = datesWithData[day]?.amount || 0;
-                    dateCell.addEventListener('click', () => this.showDayDetails(dateStr, hours, amount));
+                    dateCell.addEventListener('click', () => this.showDayDetails(dateStr, hours, amount, dateCell));
                     calendarGrid.appendChild(dateCell);
                 }
             },
             // 显示日期详情
-            showDayDetails(date, totalHours, totalAmount) {
+            showDayDetails(date, totalHours, totalAmount, triggerCell = null) {
                 // 存储当前详情的日期
                 this.currentDayDetailDate = date;
                 // 预计算和缓存数据
@@ -2087,14 +2197,22 @@ p,span,div{
                         }
                     }, { once: true }); // 使用once选项自动移除监听器
                 }
-                // 显示模态框 - 移除不必要的延迟
+                // 显示模态框：从点击日期自然“展开”，并保留选中反馈
                 const modal = document.getElementById('day-detail-modal');
                 const modalContent = document.getElementById('day-detail-content');
+                if (this.lastSelectedDateCell && this.lastSelectedDateCell !== triggerCell) {
+                    this.lastSelectedDateCell.classList.remove('calendar-day-selected');
+                }
+                if (triggerCell) {
+                    triggerCell.classList.add('calendar-day-selected');
+                    this.lastSelectedDateCell = triggerCell;
+                    modalContent.style.transformOrigin = 'center bottom';
+                }
                 modal.classList.remove('hidden');
-                // 立即显示模态框，不使用setTimeout
+                modal.classList.remove('calendar-popover-open');
+                modalContent.classList.remove('scale-95', 'scale-100', 'opacity-0', 'opacity-100');
                 requestAnimationFrame(() => {
-                    modalContent.classList.remove('scale-95', 'opacity-0');
-                    modalContent.classList.add('scale-100', 'opacity-100', 'transition-all', 'duration-300');
+                    modal.classList.add('calendar-popover-open');
                 });
             },
             // 关闭日期详情模态框
@@ -2105,16 +2223,25 @@ p,span,div{
                 }
                 const modal = document.getElementById('day-detail-modal');
                 const modalContent = document.getElementById('day-detail-content');
-                // 使用requestAnimationFrame优化动画性能
+                // 收起动画：先播放回缩，再隐藏遮罩
                 requestAnimationFrame(() => {
-                    modalContent.classList.remove('scale-100', 'opacity-100');
-                    modalContent.classList.add('scale-95', 'opacity-0');
-                    // 监听过渡结束事件，避免固定延迟
-                    const handleTransitionEnd = () => {
+                    modal.classList.remove('calendar-popover-open');
+                    if (this.lastSelectedDateCell) {
+                        this.lastSelectedDateCell.classList.remove('calendar-day-selected');
+                        this.lastSelectedDateCell = null;
+                    }
+                    let closeTimer = null;
+                    const finishClose = () => {
                         modal.classList.add('hidden');
                         modalContent.removeEventListener('transitionend', handleTransitionEnd);
+                        if (closeTimer) clearTimeout(closeTimer);
+                    };
+                    const handleTransitionEnd = (event) => {
+                        if (event.target !== modalContent) return;
+                        finishClose();
                     };
                     modalContent.addEventListener('transitionend', handleTransitionEnd, { once: true });
+                    closeTimer = setTimeout(finishClose, 420);
                 });
             },
             // 打开型号模态框
@@ -3923,4 +4050,4 @@ p,span,div{
 })();</script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script><script id="yearly-report-rebuild-script">(function(){if(typeof UIController==='undefined'||typeof DataManager==='undefined')return;const monthNames=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];function fmtHours(v){return `${Number(v||0).toFixed(1)} 分钟`;}function getActiveMonths(monthlyData){return monthlyData.filter(m=>(m.hours||0)>0||(m.workDays||0)>0||(m.hourlyIncome||0)>0);}function daysInMonth(year,month){return new Date(year,month,0).getDate();}UIController.showYearlyStats=function(){const currentYear=new Date().getFullYear();this.currentYearlyStatsYear=currentYear;this.isYearlyEditMode=false;const yearlyStats=DataManager.getYearlyStats(currentYear);document.getElementById('yearly-stats-title').textContent=`${currentYear}年度总结`;document.getElementById('yearly-stats-total-hours').textContent=fmtHours(yearlyStats.totalHours);document.getElementById('yearly-stats-total-income').textContent=`¥${yearlyStats.totalYearlyIncome.toFixed(2)}`;document.getElementById('yearly-stats-work-days').textContent=`${yearlyStats.totalWorkDays} 天`;const avg=yearlyStats.totalWorkDays>0?yearlyStats.totalHours/yearlyStats.totalWorkDays:0;const avgEl=document.getElementById('yearly-stats-avg-day-hours');if(avgEl)avgEl.textContent=fmtHours(avg);this.renderYearlyStatsTable(yearlyStats.monthlyData);this.generateYearlySummary(yearlyStats);const saveBtn=document.getElementById('save-yearly-edits');if(saveBtn)saveBtn.classList.add('hidden');const editBtn=document.getElementById('toggle-yearly-edit-mode');if(editBtn)editBtn.classList.add('hidden');const modal=document.getElementById('yearly-stats-modal');const modalContent=document.getElementById('yearly-stats-content');modal.classList.remove('hidden');requestAnimationFrame(()=>{modalContent.classList.remove('scale-95','opacity-0');modalContent.classList.add('scale-100','opacity-100','transition-all','duration-300');});};UIController.renderYearlyStatsTable=function(monthlyData){const box=document.getElementById('yearly-stats-table-body');if(!box)return;const year=this.currentYearlyStatsYear||new Date().getFullYear();const maxHours=Math.max(...monthlyData.map(m=>m.hours||0),1);const currentMonth=new Date().getMonth()+1;const active=getActiveMonths(monthlyData);box.innerHTML='';monthlyData.forEach(m=>{const item=document.createElement('div');const isCurrent=new Date().getFullYear()===year&&m.month===currentMonth;item.className='yearly-month-item'+(isCurrent?' yearly-current-month':'');const ratio=Math.min(100,((m.hours||0)/maxHours)*100);const rest=Math.max(0,daysInMonth(year,m.month)-(m.workDays||0));item.innerHTML=`<div class="yearly-month-main"><div><div class="yearly-month-name">${monthNames[m.month-1]}${isCurrent?' · 本月':''}</div><div class="yearly-month-meta"><span>工时 ${Number(m.hours||0).toFixed(1)} 分钟</span><span>收入 ¥${Number(m.totalIncome||0).toFixed(2)}</span><span>记录 ${m.workDays||0} 天</span><span>休息 ${rest} 天</span></div></div><div class="text-right text-sm font-bold text-primary">${ratio.toFixed(0)}%</div></div><div class="yearly-month-bar"><span style="width:${ratio}%"></span></div>`;box.appendChild(item);});const best=active.length?[...active].sort((a,b)=>(b.hours||0)-(a.hours||0))[0]:null;const lowest=active.length?[...active].sort((a,b)=>(a.hours||0)-(b.hours||0))[0]:null;const restMost=[...monthlyData].sort((a,b)=>(daysInMonth(year,b.month)-(b.workDays||0))-(daysInMonth(year,a.month)-(a.workDays||0)))[0];const bestEl=document.getElementById('yearly-best-month');const lowEl=document.getElementById('yearly-lowest-month');const restEl=document.getElementById('yearly-most-rest-month');if(bestEl)bestEl.textContent=best?`${monthNames[best.month-1]} · ${Number(best.hours||0).toFixed(1)}分钟`:'暂无数据';if(lowEl)lowEl.textContent=lowest?`${monthNames[lowest.month-1]} · ${Number(lowest.hours||0).toFixed(1)}分钟`:'暂无数据';if(restEl)restEl.textContent=restMost?`${monthNames[restMost.month-1]} · ${daysInMonth(year,restMost.month)-(restMost.workDays||0)}天`:'暂无数据';};UIController.generateYearlySummary=function(yearlyStats){const el=document.getElementById('yearly-summary-text');if(!el)return;const active=getActiveMonths(yearlyStats.monthlyData);const avg=yearlyStats.totalWorkDays>0?yearlyStats.totalHours/yearlyStats.totalWorkDays:0;const best=active.length?[...active].sort((a,b)=>(b.hours||0)-(a.hours||0))[0]:null;const lowest=active.length?[...active].sort((a,b)=>(a.hours||0)-(b.hours||0))[0]:null;const totalRest=yearlyStats.monthlyData.reduce((sum,m)=>sum+Math.max(0,daysInMonth(yearlyStats.year,m.month)-(m.workDays||0)),0);let summary=`${yearlyStats.year}年度总结：
 `;summary+=`年度总工时 ${Number(yearlyStats.totalHours||0).toFixed(1)} 分钟，年度总收入 ¥${yearlyStats.totalYearlyIncome.toFixed(2)}，记录 ${yearlyStats.totalWorkDays} 天，平均每天 ${avg.toFixed(1)} 分钟。
 `;if(best)summary+=`最高工时月份是${monthNames[best.month-1]}（${Number(best.hours||0).toFixed(1)}分钟）；最低工时月份是${monthNames[lowest.month-1]}（${Number(lowest.hours||0).toFixed(1)}分钟）。
-`;summary+=`全年休息/未记录约 ${totalRest} 天。整体来看，年度总结更适合关注趋势、峰值月份和工作节奏，而不是堆满明细。`;el.textContent=summary;};})();</script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script></body></html>
+`;summary+=`全年休息/未记录约 ${totalRest} 天。整体来看，年度总结更适合关注趋势、峰值月份和工作节奏，而不是堆满明细。`;el.textContent=summary;};})();</script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script><script src="/Static/js/jquery.js"></script><script src="/Static/js/Global.js"></script><script src="/Web/js/Global.js"></script><script src="/Web/js/SoruxGPT.js"></script></body></html>
